@@ -31,6 +31,12 @@ Follow these steps to get your development environment set up:
   - Bug fixes and improvements
 
 ### Beta Versions
+#### v0.1.2-beta
+- **Release Date**: 2024-10-15
+- **Features Released**:
+  - Sign up, login, and logout functionality.
+  - Users must create an account to log in.
+
 #### v0.1.1-beta
 - **Release Date**: 2024-10-10
 - **Features Released**:
