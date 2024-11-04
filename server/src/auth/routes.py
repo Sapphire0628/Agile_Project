@@ -61,7 +61,7 @@ def register():
             return jsonify({'error': 'Username or email already exists'}), 409
         
         # Create new user
-        password_hash = generate_password_hash(data['password'])
+        password_hash = generate_password_hash(data['password'], method = 'pbkdf2')
         conn.execute('''
             INSERT INTO Users (username, email, password)
             VALUES (?, ?, ?)
