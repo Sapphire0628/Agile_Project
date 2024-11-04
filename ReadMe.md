@@ -19,7 +19,7 @@ Follow these steps to get your development environment set up:
 2. Run the setup script:
     ```
     cd agile-project-management-tool
-    ./setup_script.sh
+    bash setup_script.sh
     
 
 ## Version Release
