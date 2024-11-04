@@ -10,8 +10,7 @@
 - **Programming Languages**:
   - **Python**: Using Django or Flask for rapid development.
 - **Database**:
-  - **MongoDB**: NoSQL database for flexibility.
-  - **MySQL**: Widely-used relational database.
+  - **SQLite**: Lightweight & Fast, Simplicity, Widely-used relational database.
 - **API**:
   - **RESTful APIs**: For interaction between frontend and backend.
 
