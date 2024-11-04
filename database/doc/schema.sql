@@ -68,6 +68,12 @@ CREATE TABLE Comments (
     FOREIGN KEY (task_id) REFERENCES Tasks(task_id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS BlacklistedTokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    jti TEXT NOT NULL UNIQUE,
+    expiry TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 -- Create indexes for better query performance
 CREATE INDEX idx_users_email ON Users(email);
 CREATE INDEX idx_tasks_project ON Tasks(project_id);
