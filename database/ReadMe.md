@@ -14,7 +14,7 @@
   
 
 2. **Projects Table**:
-   - Contains details about each project, linking the owner to the `Users` table.
+   - Contains details about each project, linking the owner_id to the `Users` table.
     - Columns: 
       - `project_id`: INTEGER PRIMARY KEY
       - `project_name`: varchar(255) NOT NULL
@@ -22,9 +22,8 @@
       - `owner_id`: INTEGER NOT NULL (References Users)
       - `created_at`: DATETIME
 
-3. **ProjectMembers Table**:
-   - Manages the relationship between users and projects, allowing multiple users to join a project.
-   - The `UNIQUE` constraint prevents duplicate user entries in the same project.
+3. **Tasks Table**:
+   - Contains details about each tasks, linking the project_id to the `Projects` table.
    - Columns: 
       - `task_id`: INTEGER PRIMARY KEY
       - `taks_name`: varchar(255) NOT NULL
