@@ -1,5 +1,5 @@
 -- Users table
-CREATE TABLE Users (
+CREATE TABLE IF NOT EXISTS Users (
     user_id INTEGER PRIMARY KEY AUTOINCREMENT,
     username VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE Users (
 );
 
 -- Projects table
-CREATE TABLE Projects (
+CREATE TABLE IF NOT EXISTS Projects (
     project_id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_name VARCHAR(255) NOT NULL,
     description VARCHAR(255),
@@ -18,7 +18,7 @@ CREATE TABLE Projects (
 );
 
 -- Tasks table
-CREATE TABLE Tasks (
+CREATE TABLE IF NOT EXISTS Tasks (
     task_id INTEGER PRIMARY KEY AUTOINCREMENT,
     taks_name VARCHAR(255) NOT NULL,
     project_id INTEGER NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE Tasks (
 );
 
 -- UserProject junction table
-CREATE TABLE UserProject (
+CREATE TABLE IF NOT EXISTS UserProject (
     user_id INTEGER NOT NULL,
     project_id INTEGER NOT NULL,
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
@@ -40,7 +40,7 @@ CREATE TABLE UserProject (
 );
 
 -- UserTask junction table
-CREATE TABLE UserTask (
+CREATE TABLE IF NOT EXISTS UserTask (
     user_id INTEGER NOT NULL,
     task_id INTEGER NOT NULL,
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
@@ -49,7 +49,7 @@ CREATE TABLE UserTask (
 );
 
 -- ProjectTask junction table
-CREATE TABLE ProjectTask (
+CREATE TABLE IF NOT EXISTS ProjectTask (
     project_id INTEGER NOT NULL,
     task_id INTEGER NOT NULL,
     FOREIGN KEY (project_id) REFERENCES Projects(project_id) ON DELETE CASCADE,
@@ -58,7 +58,7 @@ CREATE TABLE ProjectTask (
 );
 
 -- Comments table
-CREATE TABLE Comments (
+CREATE TABLE IF NOT EXISTS Comments (
     comment_id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     task_id INTEGER NOT NULL,
