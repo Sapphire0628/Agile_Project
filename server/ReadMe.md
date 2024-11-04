@@ -46,3 +46,28 @@ curl -X POST http://localhost:8000/auth/logout \
 
 #### Output
 > {'message': 'Successfully logged out'}
+
+## Retrieval users profile for testing authorization token(For development/testing usage)
+```
+# 1. Login and save token
+TOKEN=$(curl -s -X POST http://localhost:8000/auth/login \
+-H "Content-Type: application/json" \
+-d '{"username": "testuser", "password": "password123"}' \
+| jq -r '.access_token')
+
+# 2. Get profile using the token
+curl -X GET http://localhost:8000/auth/me \
+-H "Authorization: Bearer $TOKEN" \
+-H "Content-Type: application/json"
+```
+#### Output
+> {'message': 'User retrieval successfully', 'user': {'email': 'test@example.com', 'user_id': 1, 'username': 'testuser'}}
+
+
+
+## Retrieval All users profile (For development/testing usage)
+```
+curl -X GET http://localhost:8000/auth/users
+```
+#### Output
+> {'message': 'All user retrieval successful', 'total': 1, 'users': [{'email': 'test@example.com', 'user_id': 1, 'username': 'testuser'}]}
