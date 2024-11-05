@@ -14,6 +14,7 @@ def get_db_connection():
         print(f"Database connection error: {e}")
         raise
 
+
 def get_user_project(user_id):
     conn = get_db_connection()
     try:
@@ -28,6 +29,7 @@ def get_user_project(user_id):
         print(str(e))
     finally:
         conn.close()
+
 
 def get_own_project(user_id):
     conn = get_db_connection()
@@ -121,7 +123,8 @@ def register_task(data):
         owner_id = cursor.fetchone()
         if owner_id is None:
             return jsonify({'error': 'No such project'}), 400
-        else: owner_id = owner_id[0]
+        else:
+            owner_id = owner_id[0]
 
         if owner_id != data['creator_id']:
             return jsonify({'error': 'Owner ID mismatch'}), 400
@@ -195,7 +198,7 @@ def register_project(data):
             conn.execute('''
                 INSERT INTO Projects (project_name, description, owner_id)
                 VALUES (?, ?,?)''',
-                     (data['project_name'], des, data['owner_id']))
+                         (data['project_name'], des, data['owner_id']))
         conn.commit()
 
         return jsonify({'message': 'Project registered successfully'}), 201
@@ -207,7 +210,7 @@ def register_project(data):
 
 
 def delete_project(data):
-    required_fields = ['project_id','creator_id']
+    required_fields = ['project_id', 'creator_id']
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
 
@@ -225,10 +228,9 @@ def delete_project(data):
         if owner_id != data['creator_id']:
             return jsonify({'error': 'Owner ID mismatch'}), 400
 
-
         conn.execute('''DELETE FROM Projects WHERE project_id = ?''',
                      (project_id,))
-        cursor  = conn.execute('''SELECT task_id FROM ProjectTask WHERE ProjectTask.project_id = ?''',(project_id,))
+        cursor = conn.execute('''SELECT task_id FROM ProjectTask WHERE ProjectTask.project_id = ?''', (project_id,))
         task_ids = cursor.fetchall()
         for task_id in task_ids:
             id = task_id[0]
@@ -247,10 +249,9 @@ def delete_project(data):
 
 
 def delete_task(data):
-    required_fields = ['task_id', 'creator_id','owner_id']
+    required_fields = ['task_id', 'creator_id', 'owner_id']
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
-
 
     task_id = data['task_id']
     conn = get_db_connection()
@@ -279,11 +280,124 @@ def delete_task(data):
     finally:
         conn.close()
 
+
 def update_task(data):
-    pass
+    required_fields = ['task_id', 'creator_id', 'owner_id']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+    conn = get_db_connection()
+    task_id = data['task_id']
+    try:
+        cursor = conn.execute('''SELECT * FROM Tasks WHERE task_id = ?''',
+                              (task_id,))
+        task = cursor.fetchone()
+        if task is None:
+            return jsonify({'error': 'No such task'}), 400
+
+        if data['owner_id'] != data['creator_id']:
+            return jsonify({'error': 'Owner ID mismatch'}), 400
+
+        if 'task_name' in data.keys():
+            conn.execute('''UPDATE Tasks
+                            SET task_name = ?
+                            WHERE Tasks.task_id = ?''',
+                         (data['task_name'], task_id,))
+        if 'description' in data.keys():
+            conn.execute('''UPDATE Tasks
+                            SET description = ?
+                            WHERE Tasks.task_id = ?''',
+                         (data['description'], task_id,))
+        if 'status' in data.keys():
+            conn.execute('''UPDATE Tasks
+                            SET status = ?
+                            WHERE Tasks.task_id = ?''',
+                         (data['status'], task_id,))
+        if 'priority' in data.keys():
+            conn.execute('''UPDATE Tasks
+                            SET priority = ?
+                            WHERE Tasks.task_id = ?''',
+                         (data['priority'], task_id,))
+        if 'due_date' in data.keys():
+            conn.execute('''UPDATE Tasks
+                            SET due_date = ?
+                            WHERE Tasks.task_id = ?''',
+                         (data['due_date'], task_id,))
+        if 'user' in data.keys():
+            cursor = conn.execute('''SELECT user_id FROM UserTask WHERE task_id = ?''',
+                                  (task_id,))
+            id = cursor.fetchall()
+            ids = []
+            for item in id:
+                ids.append(item[0])
+
+            if data['user']['type'] == 'add':
+                common_elements = set(ids) & set(data['user']['users'])
+                if common_elements:
+                    return jsonify({'err': 'user already exits.', 'users:': list(common_elements)}), 400
+
+                for user_id in data['user']['users']:
+                    conn.execute('''INSERT INTO UserTask (user_id, task_id)
+                                VALUES (?, ?)''',
+                                 (user_id, task_id,))
+
+            elif data['user']['type'] == 'remove':
+                different_elements = set(data['user']['users']).difference(set(ids))
+                if different_elements:
+                    return jsonify({'err': 'user not exits.','users:':list(different_elements)}), 400
+                for user_id in data['user']['users']:
+                    conn.execute('''DELETE FROM UserTask WHERE  user_id = ? and task_id = ?''',
+                                 (user_id, task_id,))
+            else:
+                return jsonify({'err': 'No such update task opration'}), 400
+
+        conn.commit()
+        return jsonify({'message': 'Task updated successfully'}), 201
+    except Exception as e:
+        print(str(e))
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
 
 def update_project(data):
-    pass
+    required_fields = ['project_id', 'creator_id', 'owner_id']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+    conn = get_db_connection()
+    project_id = data['project_id']
+    try:
+        cursor = conn.execute('''SELECT * FROM Projects WHERE project_id = ?''',
+                              (project_id,))
+        project = cursor.fetchone()
+        if project is None:
+            return jsonify({'error': 'No such Project'}), 400
+
+        if data['owner_id'] != data['creator_id']:
+            return jsonify({'error': 'Owner ID mismatch'}), 400
+
+        if 'project_name' in data.keys():
+            conn.execute('''UPDATE Projects
+                                SET project_name = ?
+                                WHERE Projects.project_id = ?''',
+                         (data['project_name'], project_id,))
+        if 'description' in data.keys():
+            conn.execute('''UPDATE Projects
+                                SET description = ?
+                                WHERE Projects.project_id = ?''',
+                         (data['description'], project_id,))
+        if 'replace_owner_id' in data.keys():
+            conn.execute('''UPDATE Projects
+                                SET owner_id = ?
+                                WHERE Projects.project_id = ?''',
+                         (data['owner_id'], project_id,))
+        conn.commit()
+        return jsonify({'message': 'Project updated successfully'}), 201
+    except Exception as e:
+        print(str(e))
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
 
 # This page show all task of one task and can register task
 @pro_bp.route('/project_detail', methods=['POST', 'GET', 'DELETE', 'PUT'])
@@ -308,6 +422,7 @@ def project_detail():
 def project():
     # 用户注册、更新项目
     data = request.get_json()
+    print(request.method)
     if request.method == "GET":
         all_project = get_user_project(data['user_id'])
         all_own_project = get_own_project(data['user_id'])
