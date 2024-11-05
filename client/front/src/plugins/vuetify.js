@@ -7,7 +7,7 @@ import { aliases, fa } from 'vuetify/iconsets/fa'
 export default createVuetify({
   ssr: true,
   icons: {
-    defaultSet: 'fa',
+    defaultSet: 'mdi',
     aliases,
     sets: {
       fa,
