@@ -27,7 +27,6 @@
    - Columns: 
       - `task_id`: INTEGER PRIMARY KEY
       - `taks_name`: varchar(255) NOT NULL
-      - `project_id`: INTEGER NOT NULL (References Projects)
       - `description`: varchar(255)
       - `status`: enum('Not start', 'Started', 'Testing', 'Review', 'Done')
       - `priority`: enum('Low', 'Medium', 'High')

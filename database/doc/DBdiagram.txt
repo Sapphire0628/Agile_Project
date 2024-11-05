@@ -1,0 +1,66 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table users {
+  user_id integer [primary key]
+  username varchar(255)  [not null, unique]
+  password varchar(255)  [not null]
+  email  varchar(255) [not null, unique]
+  created_at datetime 
+}
+
+Table projects {
+  project_id integer [primary key]
+  project_name varchar(255) [not null]
+  description varchar(255) 
+  owner_id integer [not null]
+  created_at datetime 
+}
+
+Table tasks {
+  task_id integer [primary key]
+  task_name varchar(255) [not null]
+  description varchar(255) 
+  status enum('Not start', 'Started', 'Testing', 'Review', 'Done')
+  priority enum('Low', 'Medium', 'High') 
+  due_date datetime
+  created_at datetime 
+}
+
+Table user_project {
+  user_id integer
+  project_id integer
+}
+
+Table user_task {
+  user_id integer
+  task_id integer
+}
+
+Table project_task {
+  project_id integer
+  task_id integer
+}
+
+Table comments {
+  comment_id integer [primary key]
+  user_id integer
+  task_id integer
+  comment varchar(255)
+  created_at datetime
+}
+
+Ref : users.user_id < projects.owner_id
+
+Ref : users.user_id < user_task.user_id
+Ref : tasks.task_id < user_task.task_id
+
+Ref : projects.project_id < project_task.project_id
+Ref : tasks.task_id < project_task.task_id
+
+Ref : users.user_id < user_project.user_id
+Ref : projects.project_id < user_project.project_id
+
+Ref : users.user_id < comments.user_id
+Ref : tasks.task_id < comments.task_id

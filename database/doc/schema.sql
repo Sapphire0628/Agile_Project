@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS Projects (
 CREATE TABLE IF NOT EXISTS Tasks (
     task_id INTEGER PRIMARY KEY AUTOINCREMENT,
     taks_name VARCHAR(255) NOT NULL,
-    project_id INTEGER NOT NULL,
     description VARCHAR(255),
     status TEXT CHECK(status IN ('Not start', 'Started', 'Testing', 'Review', 'Done')) DEFAULT 'Not start',
     priority TEXT CHECK(priority IN ('Low', 'Medium', 'High')) DEFAULT 'Medium',
