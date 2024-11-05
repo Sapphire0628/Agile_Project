@@ -52,6 +52,11 @@ def register():
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
     
+    # Add password complexity check
+    password = data['password']
+    if not is_password_complex(password):
+        return jsonify({'error': 'Password must be at least 6 characters long and contain at least one letter and one number.'}), 400
+
     conn = get_db_connection()
     try:
         # Check if user already exists
@@ -75,6 +80,12 @@ def register():
     finally:
         conn.close()
 
+# Add this helper function to check password complexity
+def is_password_complex(password):
+    import re
+    # Check for at least 6 characters, at least one letter, and one number
+    return bool(re.match(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$', password))
+
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -84,11 +95,12 @@ def login():
     
     conn = get_db_connection()
     try:
+        # Update the query to check for both username and email
         cursor = conn.execute('''
             SELECT user_id, username, email, password 
             FROM Users 
-            WHERE username = ?
-        ''', (data['username'],))
+            WHERE username = ? OR email = ?
+        ''', (data['username'], data['username']))  # Check both username and email
         user = cursor.fetchone()
         
         # Convert tuple to dictionary for easier access
