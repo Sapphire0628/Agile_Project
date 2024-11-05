@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+import os
 import sqlite3
 
 pro_bp = Blueprint('pro', __name__)
@@ -13,6 +14,20 @@ def get_db_connection():
         print(f"Database connection error: {e}")
         raise
 
+def get_user_project(user_id):
+    conn = get_db_connection()
+    try:
+        cursor = conn.execute('''
+                   SELECT DISTINCT p. project_id, p.project_name, p.description,p.owner_id, p.created_at
+                   FROM UserTask ut, ProjectTask pt, Projects p
+                   WHERE ut.task_id = pt.task_id and ut.user_id = ? AND pt.project_id = p.project_id
+               ''', (user_id,))
+        projects = cursor.fetchall()
+        return projects
+    except Exception as e:
+        print(str(e))
+    finally:
+        conn.close()
 
 def get_own_project(user_id):
     conn = get_db_connection()
@@ -70,7 +85,7 @@ def get_project_detail(data):
             members = cursor.fetchall()
 
             cursor = conn.execute(
-                'SELECT task_name, description, status, priority, due_date, created_at  FROM Tasks t,ProjectTask pt WHERE t.task_id = pt.task_id and pt.project_id = ?',
+                'SELECT t.task_id, task_name, description, status, priority, due_date, created_at  FROM Tasks t,ProjectTask pt WHERE t.task_id = pt.task_id and pt.project_id = ?',
                 (project_id,))
             tasks = cursor.fetchall()
 
@@ -176,7 +191,8 @@ def register_project(data):
                          (data['project_id'], data['project_name'], des, data['owner_id']))
             conn.commit()
         # Create new Project
-        conn.execute('''
+        else:
+            conn.execute('''
                 INSERT INTO Projects (project_name, description, owner_id)
                 VALUES (?, ?,?)''',
                      (data['project_name'], des, data['owner_id']))
@@ -293,7 +309,6 @@ def project():
     # 用户注册、更新项目
     data = request.get_json()
     if request.method == "GET":
-
         all_project = get_user_project(data['user_id'])
         all_own_project = get_own_project(data['user_id'])
         all_tasks = get_user_tasks(data['user_id'])
