@@ -20,11 +20,7 @@ CREATE TABLE IF NOT EXISTS Projects (
 -- Tasks table
 CREATE TABLE IF NOT EXISTS Tasks (
     task_id INTEGER PRIMARY KEY AUTOINCREMENT,
-<<<<<<< Updated upstream
-    taks_name VARCHAR(255) NOT NULL,
-=======
     task_name VARCHAR(255) NOT NULL,
->>>>>>> Stashed changes
     description VARCHAR(255),
     status TEXT CHECK(status IN ('Not start', 'Started', 'Testing', 'Review', 'Done')) DEFAULT 'Not start',
     priority TEXT CHECK(priority IN ('Low', 'Medium', 'High')) DEFAULT 'Medium',
@@ -78,5 +74,4 @@ CREATE TABLE IF NOT EXISTS BlacklistedTokens (
 );
 -- Create indexes for better query performance
 CREATE INDEX idx_users_email ON Users(email);
-CREATE INDEX idx_tasks_project ON Tasks(project_id);
 CREATE INDEX idx_comments_task ON Comments(task_id);
