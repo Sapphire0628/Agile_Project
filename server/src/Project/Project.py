@@ -1,31 +1,9 @@
-import os
-<<<<<<< Updated upstream
-from flask import Blueprint, request, jsonify, render_template,session
-import Classes
-from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3
-from datetime import datetime, timezone
-from flask_jwt_extended import (
-    get_jwt,
-    unset_jwt_cookies,
-    create_access_token,
-    jwt_required,
-    get_jwt_identity,
-    JWTManager
-)
-
-
-
-pro_bp = Blueprint('pro', __name__)
-
-=======
 from flask import Blueprint, request, jsonify
 import sqlite3
 
 pro_bp = Blueprint('pro', __name__)
 
 
->>>>>>> Stashed changes
 def get_db_connection():
     try:
         DB_PATH = os.path.abspath(os.path.join(os.getcwd(), 'database', 'test.db'))
@@ -34,64 +12,6 @@ def get_db_connection():
     except sqlite3.Error as e:
         print(f"Database connection error: {e}")
         raise
-
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
-def get_user_project(user_id):
-    conn = get_db_connection()
-    try:
-        cursor = conn.execute('''
-<<<<<<< Updated upstream
-                   SELECT project_id 
-                   FROM UserProject 
-                   WHERE userid = ?
-               ''', (user_id,))
-        ids = cursor.fetchall()
-
-
-
-    finally:
-        conn.close()
-    pass
-
-def get_user_tasks(user_id):
-    pass
-@pro_bp.route('/project', methods=['POST','GET'])
-def project():
-    #用户注册任务/项目
-    print(request.method == 'GET')
-    if request.method == "GET":
-        access_token = session.get('access_token')
-        user_dict = session.get('user_info')
-
-
-
-        return jsonify({
-                    'message' : 'User login successfully',
-                    'access_token': access_token,
-                    'user': {
-                        'username': user_dict['username'],
-                        'email': user_dict['email']
-                    }
-                }), 200
-        # TODO html改成project页面的html
-        return render_template("html")
-    elif request.method == "POST":
-        return '????'
-    pass
-=======
-                   SELECT DISTINCT p. project_id, p.project_name, p.description,p.owner_id, p.created_at
-                   FROM UserTask ut, ProjectTask pt, Projects p
-                   WHERE ut.task_id = pt.task_id and ut.user_id = ? AND pt.project_id = p.project_id
-               ''', (user_id,))
-        all_project = cursor.fetchall()
-        return all_project
-    except Exception as e:
-        print(str(e))
-    finally:
-        conn.close()
 
 
 def get_own_project(user_id):
@@ -391,4 +311,3 @@ def project():
 
     elif request.method == "PUT":
         return update_project(data)
->>>>>>> Stashed changes
