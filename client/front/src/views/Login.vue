@@ -32,8 +32,6 @@
 </template>
 
 <script>
-import axios from 'axios';
-
 export default {
   data:() => ({
       valid: true,
@@ -55,14 +53,17 @@ export default {
   methods: {
     login() {
       if (this.$refs.form.validate()) {
-          axios.post('/https://8a74705f-88cc-40ba-af38-3379f495a983-00-1npdqf5pljqau.pike.replit.dev/auth/login/', {
+          this.$axios.post('https://8a74705f-88cc-40ba-af38-3379f495a983-00-1npdqf5pljqau.pike.replit.dev/auth/login', {
             username: this.username,
             password: this.password,
           })
-          .then(() => {
+          .then(response => {
+            const token = response.data.token
+            this.$store.dispatch('user/login', token)
+            this.$router.push('/home')
             console.log('登录成功')
           })
-          .catch(() =>{
+          .catch(() => {
             console.log('登陆失败')
           })
         }
@@ -74,6 +75,7 @@ export default {
     }
   }
 }
+
 </script>
 
 <style scope>

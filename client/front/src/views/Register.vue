@@ -31,7 +31,7 @@
             </v-form>
               <v-card-actions class="d-flex justify-center">
                 <v-btn variant="outlined" color="primary" :disabled="!valid" @click="register">注册</v-btn>
-                <v-btn variant="outlined" @click="clear">清除</v-btn>
+                <v-btn variant="outlined" @click="getback">返回</v-btn>
               </v-card-actions>
           </v-card-text>
         </v-container>
@@ -72,6 +72,7 @@ methods: {
         })
         .then(() => {
           console.log('注册成功')
+          this.$router.push('/login')
         })
         .catch(() =>{
           console.log('注册失败')
@@ -81,8 +82,8 @@ methods: {
   clear() {
       this.$refs.form.reset();
     },
-  goToRegister() {
-    this.$router.push('/register');
+  getback() {
+    this.$router.push('/login');
   },
 }
 }
