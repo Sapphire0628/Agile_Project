@@ -1,6 +1,7 @@
 # API 接口
 
 Local   : http://localhost:8000/
+
 Replite : https://8a74705f-88cc-40ba-af38-3379f495a983-00-1npdqf5pljqau.pike.replit.dev/
 
 ## Sign Up Example
@@ -50,6 +51,7 @@ curl -X POST http://localhost:8000/auth/logout \
 > {'message': 'Successfully logged out'}
 
 ## Retrieval users profile for testing authorization token(For development/testing usage)
+
 ```
 # 1. Login and save token
 TOKEN=$(curl -s -X POST http://localhost:8000/auth/login \
@@ -64,6 +66,24 @@ curl -X GET http://localhost:8000/auth/me \
 ```
 #### Output
 > {'message': 'User retrieval successfully', 'user': {'email': 'test@example.com', 'user_id': 1, 'username': 'testuser'}}
+
+
+## Create Project
+
+```
+curl -X POST http://localhost:8000/pro/project \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <your_token_here>" \
+     -d '{
+           "project_name": "DE Project",
+           "description": "This is a DE project"
+         }'
+```
+
+#### Output
+
+>{'message': 'Project registered successfully','owner_id': 1,'project_name':'DE Project'})
+
 
 
 
