@@ -82,7 +82,9 @@ curl -X POST http://localhost:8000/pro/project \
 
 #### Output
 
->{'message': 'Project registered successfully','owner_id': 1,'project_name':'DE Project'})
+>response.json = {'message': 'Project registered successfully','owner_id': 1,'project_name':'DE Project'}
+>response.headers = {'Server': 'Werkzeug/3.0.4 Python/3.9.16', 'Date': 'Wed, 06 Nov 2024 05:49:55 GMT', 'Content-Type': 'application/json', 'Content-Length': '87', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTczMDg3MDE0MywianRpIjoiZTljODdiYTUtZjI4MC00MGIzLTg4MGMtYjBmMmE5ZWEwZjhmIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRlc3R1c2VyIn0sIm5iZiI6MTczMDg3MDE0MywiY3NyZiI6ImQ2OWE1ZmFlLWVlYTgtNGJkOS1hMjE2LTk2Zjk0ZTdkY2QzMSIsImV4cCI6MTczMDk1NjU0M30.ygWHiM9jk5Y4yOO0nYLvMFOA1xvG7C1FhehJnusz1tg', 'Access-Control-Allow-Origin': '*', 'Connection': 'close'}
+
 
 
 
