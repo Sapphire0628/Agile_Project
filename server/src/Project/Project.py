@@ -27,8 +27,8 @@ def get_user_project(user_id):
                    WHERE ut.task_id = pt.task_id and ut.user_id = ? AND pt.project_id = p.project_id
                ''', (user_id,))
         projects = cursor.fetchall()
-        projects = [{'project_id': p[0], 'project_name': p[1], 'description': p[2], 'owner_id': p[3], 'created_at': p[4]} for p in projects]
-
+        # projects = [{'project_id': p[0], 'project_name': p[1], 'description': p[2], 'owner_id': p[3], 'created_at': p[4]} for p in projects]
+        projects = [{'project_id': p[0], 'description': p[2]} for p in projects]
         return projects
     except Exception as e:
         print(str(e))
@@ -48,7 +48,8 @@ def get_own_project(user_id):
                ''', (user_id,))
         all_project = cursor.fetchall()
 
-        all_project = [{'project_id': p[0], 'project_name': p[1], 'description': p[2], 'owner_id': p[3], 'created_at': p[4]} for p in all_project]
+        # all_project = [{'project_id': p[0], 'project_name': p[1], 'description': p[2], 'owner_id': p[3], 'created_at': p[4]} for p in all_project]
+        projects = [{'project_id': p[0], 'description': p[2]} for p in projects]
         return all_project
     except Exception as e:
         print(str(e))
@@ -93,8 +94,11 @@ def get_project_detail(data):
                 'owner_id': pro[3],
                 'created_at': pro[4]
             }
+            # cursor = conn.execute(
+            #     'SELECT DISTINCT username FROM Users u,UserTask ut, ProjectTask pt WHERE u.user_id = ut.user_id and ut.task_id = pt.task_id and pt.project_id = ?',
+            #     (project_id,))
             cursor = conn.execute(
-                'SELECT DISTINCT username FROM Users u,UserTask ut, ProjectTask pt WHERE u.user_id = ut.user_id and ut.task_id = pt.task_id and pt.project_id = ?',
+                'SELECT DISTINCT username FROM Users u, UserProject up WHERE u.user_id = up.user_id and up.project_id = ?',
                 (project_id,))
             members = cursor.fetchall()
             members = [{'username': m[0]} for m in members]
@@ -104,7 +108,6 @@ def get_project_detail(data):
                 (project_id,))
             tasks = cursor.fetchall()
             tasks = [{'task_id': t[0], 'task_name': t[1], 'description': t[2], 'status': t[3], 'priority': t[4], 'due_date': t[5], 'created_at': t[6]} for t in tasks]
-
 
             return jsonify({
                 'message': 'open project successfully',
@@ -127,7 +130,7 @@ def get_project_detail(data):
 def register_task(data):
     # Validate required fields, description is option
     #  task_id and created_at are created by server
-    required_fields = ['task_name', 'status', 'priority', 'due_date', 'users']
+    required_fields = ['task_name', 'status', 'priority', 'due_date', 'users','project_id']
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
 
@@ -151,6 +154,17 @@ def register_task(data):
                                   (user,))
             user_id.append(cursor.fetchone()[0])
 
+
+        cursor = conn.execute('SELECT user_id FROM UserProject WHERE project_id = ?',
+                              (data['project_id'],))
+        ids = cursor.fetchall()
+        valid_id = []
+        for id in ids:
+            valid_id.append(id[0])
+
+        if not set(user_id).issubset(valid_id):
+            return jsonify({'error': 'Invalid User ID'}), 400
+
         if 'description' not in data.keys():
             des = ""
         else:
@@ -158,7 +172,7 @@ def register_task(data):
         # event_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         # Create new Task
-        conn.execute('''
+        cursor = conn.execute('''
                 INSERT INTO Tasks (task_name, description, status, priority, due_date)
                 VALUES (?, ?, ?,?,?)
             ''', (data['task_name'], des, data['status'], data['priority'], data['due_date']))
@@ -206,18 +220,18 @@ def register_project(data):
             conn.execute('''
                             INSERT INTO Projects (project_id, project_name, description, owner_id)
                             VALUES (?, ?, ?,?)''',
-                         (data['project_id'], data['project_name'], des, data['owner_id']))
+                         (data['project_id'], data['project_name'], des, data['creator_id']))
             conn.commit()
         # Create new Project
         else:
             conn.execute('''
                 INSERT INTO Projects (project_name, description, owner_id)
                 VALUES (?, ?,?)''',
-                         (data['project_name'], des, data['owner_id']))
+                         (data['project_name'], des, data['creator_id']))
         conn.commit()
 
         response = jsonify({'message': 'Project registered successfully',
-                        'owner_id': data['owner_id'],
+                        'owner_id': data['creator_id'],
                         'project_name':data['project_name']})
         # response.headers['Authorization'] = f'Bearer {access_token}'
 
@@ -251,6 +265,8 @@ def delete_project(data):
 
         conn.execute('''DELETE FROM Projects WHERE project_id = ?''',
                      (project_id,))
+        conn.execute('''DELETE FROM UserProject WHERE project_id = ?''',(project_id,))
+
         cursor = conn.cursor()
         cursor.execute('''SELECT task_id FROM ProjectTask WHERE ProjectTask.project_id = ?''', (project_id,))
         task_ids = cursor.fetchall()
@@ -359,21 +375,29 @@ def update_task(data):
             for item in id:
                 ids.append(item[0])
 
+            users_id = []
+            # through user_name get user_id
+            for user in data['user']['users']:
+                cursor = conn.execute('SELECT user_id FROM Users WHERE username = ?',
+                                      (user,))
+                users_id.append(cursor.fetchone()[0])
+            print(users_id)
+            print(ids)
             if data['user']['type'] == 'add':
-                common_elements = set(ids) & set(data['user']['users'])
+                common_elements = set(ids) & set(users_id)
                 if common_elements:
-                    return jsonify({'err': 'user already exits.', 'users:': list(common_elements)}), 400
+                    return jsonify({'err': 'user already exits.', 'user ids:': list(common_elements)}), 400
 
-                for user_id in data['user']['users']:
+                for user_id in users_id:
                     conn.execute('''INSERT INTO UserTask (user_id, task_id)
                                 VALUES (?, ?)''',
                                  (user_id, task_id,))
 
             elif data['user']['type'] == 'remove':
-                different_elements = set(data['user']['users']).difference(set(ids))
+                different_elements = set(users_id).difference(set(ids))
                 if different_elements:
                     return jsonify({'err': 'user not exits.','users:':list(different_elements)}), 400
-                for user_id in data['user']['users']:
+                for user_id in users_id:
                     conn.execute('''DELETE FROM UserTask WHERE  user_id = ? and task_id = ?''',
                                  (user_id, task_id,))
             else:
@@ -389,24 +413,21 @@ def update_task(data):
 
 
 def update_project(data):
-    required_fields = ['project_id', 'creator_id', 'owner_id']
+    required_fields = ['project_id', 'creator_id']
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
     conn = get_db_connection()
     project_id = data['project_id']
     try:
         cursor = conn.cursor()
-        cursor.execute('''SELECT * FROM Projects WHERE project_id = ?''',
+        cursor.execute('''SELECT owner_id FROM Projects WHERE project_id = ?''',
                               (project_id,))
         project = cursor.fetchone()
-        # Convert project tuple to dictionary
-
-
 
         if project is None:
             return jsonify({'error': 'No such Project'}), 400
-
-        if data['owner_id'] != data['creator_id']:
+        owner_id = project[0]
+        if owner_id != data['creator_id']:
             return jsonify({'error': 'Owner ID mismatch'}), 400
 
         if 'project_name' in data.keys():
@@ -423,7 +444,7 @@ def update_project(data):
             conn.execute('''UPDATE Projects
                                 SET owner_id = ?
                                 WHERE Projects.project_id = ?''',
-                         (data['owner_id'], project_id,))
+                         (data['replace_owner_id'], project_id,))
         conn.commit()
         response =  jsonify({'message': 'Project updated successfully'})
 
@@ -434,38 +455,112 @@ def update_project(data):
     finally:
         conn.close()
 
+@pro_bp.route('/project_all', methods=['GET'])
+def project_all():
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(''' SELECT * FROM Projects p''')
+        projects = cursor.fetchall()
+        projects = [
+            {'project_id': p[0], 'project_name': p[1], 'description': p[2], 'owner_id': p[3], 'created_at': p[4]} for p
+            in projects]
+        return projects
+    except Exception as e:
+        print(str(e))
+    finally:
+        conn.close()
+
+@pro_bp.route('/edit_project_member', methods=['POST'])
+@jwt_required()
+def edit_project_member():
+    data = request.get_json()
+    current_user = get_jwt_identity()['user_id']
+    required_fields = ['project_id', 'type', 'users', 'owner_id']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    project_id = data['project_id']
+
+    if data['owner_id'] != current_user:
+        return jsonify({'error': 'Owner ID mismatch'}), 400
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''SELECT user_id FROM UserProject WHERE project_id = ?''',
+                       (project_id,))
+        id = cursor.fetchall()
+        ids = []
+        for item in id:
+            ids.append(item[0])
+        user_ids = []
+        # through user_name get user_id
+        for user in data['users']:
+            cursor = conn.execute('SELECT user_id FROM Users WHERE username = ?',
+                                  (user,))
+            user_ids.append(cursor.fetchone()[0])
+
+        if data['type'] == 'add':
+            common_elements = set(ids) & set(user_ids)
+            if common_elements:
+                return jsonify({'err': 'user already exits.', 'users:': list(common_elements)}), 400
+
+            for user_id in user_ids:
+                conn.execute('''INSERT INTO UserProject (user_id, project_id) VALUES (?, ?)''',
+                             (user_id, project_id,))
+            conn.commit()
+            return jsonify({'msg': 'Added project members Successfully'}), 200
+
+        elif data['type'] == 'remove':
+            different_elements = set(user_ids).difference(set(ids))
+            if different_elements:
+                return jsonify({'err': 'user not exits.', 'users:': list(different_elements)}), 400
+            for user_id in user_ids:
+                conn.execute('''DELETE FROM UserProject WHERE  user_id = ? and project_id = ?''',
+                             (user_id, project_id,))
+            conn.commit()
+            return jsonify({'msg': 'Removed project members Successfully'}), 200
+        else:
+            return jsonify({'err': 'No such opration'}), 400
+    except Exception as e:
+        print(str(e))
+    finally:
+        conn.close()
 
 # This page show all task of one task and can register task
 @pro_bp.route('/project_detail', methods=['POST', 'GET', 'DELETE', 'PUT'])
 @jwt_required() 
 def project_detail():
     # 用户注册、更新任务
+    current_user = get_jwt_identity()
     data = request.get_json()
     if request.method == "GET":
         return get_project_detail(data)
 
     elif request.method == "POST":
-        current_user = get_jwt_identity()  # This will return the identity you set when creating the token
-        data = request.get_json()
         data['creator_id'] = current_user['user_id']
-
         response = register_task(data)
         return response
 
     elif request.method == "DELETE":
+        data['creator_id'] = current_user['user_id']
         return delete_task(data)
 
     elif request.method == "PUT":
+        data['creator_id'] = current_user['user_id']
         return update_task(data)
 
 
 # This page show all project and tasks of one user and can register project
 @pro_bp.route('/project', methods=['POST', 'GET', 'DELETE', 'PUT'])
-@jwt_required() 
+@jwt_required()
 def project():
     # 用户注册、更新项目
     
     current_user = get_jwt_identity()   # This will return the identity you set when creating the token
+    data = request.get_json()
+    data['creator_id'] = current_user['user_id']
 
     if request.method == "GET":
 
@@ -482,18 +577,12 @@ def project():
     
 
     elif request.method == "POST":
-        data = request.get_json()
-        data['owner_id'] = current_user['user_id']
         return register_project(data)
 
     elif request.method == "DELETE":
-        data = request.get_json()
-        data['creator_id'] = current_user['user_id']
         return delete_project(data)
 
     elif request.method == "PUT":
-        data = request.get_json()
-        data['creator_id'] = current_user['user_id']
         return update_project(data)
 
 
