@@ -6,6 +6,16 @@ import sqlite3
 
 pro_bp = Blueprint('pro', __name__)
 
+def get_owner_id(project_id):
+    conn = get_db_connection()
+    cursor = conn.execute('SELECT owner_id FROM Projects WHERE project_id = ?',
+                          (project_id,))
+    owner_id = cursor.fetchone()
+    if owner_id is None:
+        return -1
+    else:
+        owner_id = owner_id[0]
+        return owner_id
 
 def get_db_connection():
     try: 
@@ -27,8 +37,7 @@ def get_user_project(user_id):
                    WHERE ut.task_id = pt.task_id and ut.user_id = ? AND pt.project_id = p.project_id
                ''', (user_id,))
         projects = cursor.fetchall()
-        # projects = [{'project_id': p[0], 'project_name': p[1], 'description': p[2], 'owner_id': p[3], 'created_at': p[4]} for p in projects]
-        projects = [{'project_id': p[0], 'description': p[2]} for p in projects]
+        projects = [{'project_id': p[0], 'project_name': p[1], 'description': p[2], 'owner_id': p[3], 'created_at': p[4]} for p in projects]
         return projects
     except Exception as e:
         print(str(e))
@@ -48,8 +57,7 @@ def get_own_project(user_id):
                ''', (user_id,))
         all_project = cursor.fetchall()
 
-        # all_project = [{'project_id': p[0], 'project_name': p[1], 'description': p[2], 'owner_id': p[3], 'created_at': p[4]} for p in all_project]
-        projects = [{'project_id': p[0], 'description': p[2]} for p in projects]
+        all_project = [{'project_id': p[0], 'project_name': p[1], 'description': p[2], 'owner_id': p[3], 'created_at': p[4]} for p in all_project]
         return all_project
     except Exception as e:
         print(str(e))
@@ -94,9 +102,6 @@ def get_project_detail(data):
                 'owner_id': pro[3],
                 'created_at': pro[4]
             }
-            # cursor = conn.execute(
-            #     'SELECT DISTINCT username FROM Users u,UserTask ut, ProjectTask pt WHERE u.user_id = ut.user_id and ut.task_id = pt.task_id and pt.project_id = ?',
-            #     (project_id,))
             cursor = conn.execute(
                 'SELECT DISTINCT username FROM Users u, UserProject up WHERE u.user_id = up.user_id and up.project_id = ?',
                 (project_id,))
@@ -136,13 +141,9 @@ def register_task(data):
 
     conn = get_db_connection()
     try:
-        cursor = conn.execute('SELECT owner_id FROM Projects WHERE project_id = ?',
-                              (data['project_id'],))
-        owner_id = cursor.fetchone()
-        if owner_id is None:
+        owner_id = get_owner_id(data['project_id'])
+        if owner_id == -1:
             return jsonify({'error': 'No such project'}), 400
-        else:
-            owner_id = owner_id[0]
 
         if owner_id != data['creator_id']:
             return jsonify({'error': 'Owner ID mismatch'}), 400
@@ -252,13 +253,9 @@ def delete_project(data):
     project_id = data['project_id']
     conn = get_db_connection()
     try:
-        cursor = conn.execute('SELECT owner_id FROM Projects WHERE project_id = ?',
-                              (data['project_id'],))
-        owner_id = cursor.fetchone()
-        if owner_id is None:
+        owner_id = get_owner_id(data['project_id'])
+        if owner_id == -1:
             return jsonify({'error': 'No such project'}), 400
-        else:
-            owner_id = owner_id[0]
 
         if owner_id != data['creator_id']:
             return jsonify({'error': 'Owner ID mismatch'}), 400
@@ -292,7 +289,7 @@ def delete_project(data):
 
 
 def delete_task(data):
-    required_fields = ['task_id', 'creator_id', 'owner_id']
+    required_fields = ['task_id', 'creator_id']
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
 
@@ -305,7 +302,13 @@ def delete_task(data):
         if task is None:
             return jsonify({'error': 'No such task'}), 400
 
-        if data['owner_id'] != data['creator_id']:
+        cursor = conn.execute('SELECT project_id FROM ProjectTask WHERE task_id = ?',
+                              (task_id,))
+        project_id = cursor.fetchone()[0]
+
+        owner_id = get_owner_id(project_id)
+
+        if owner_id != data['creator_id']:
             return jsonify({'error': 'Owner ID mismatch'}), 400
 
         conn.execute('''DELETE FROM Tasks WHERE  task_id = ?''',
@@ -325,7 +328,7 @@ def delete_task(data):
 
 
 def update_task(data):
-    required_fields = ['task_id', 'creator_id', 'owner_id']
+    required_fields = ['task_id', 'creator_id']
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
     conn = get_db_connection()
@@ -338,7 +341,12 @@ def update_task(data):
         if task is None:
             return jsonify({'error': 'No such task'}), 400
 
-        if data['owner_id'] != data['creator_id']:
+        cursor = conn.execute('SELECT project_id FROM ProjectTask WHERE task_id = ?', (task_id,))
+        project_id = cursor.fetchone()[0]
+
+        owner_id = get_owner_id(project_id)
+
+        if owner_id != data['creator_id']:
             return jsonify({'error': 'Owner ID mismatch'}), 400
 
         if 'task_name' in data.keys():
@@ -419,14 +427,11 @@ def update_project(data):
     conn = get_db_connection()
     project_id = data['project_id']
     try:
-        cursor = conn.cursor()
-        cursor.execute('''SELECT owner_id FROM Projects WHERE project_id = ?''',
-                              (project_id,))
-        project = cursor.fetchone()
 
-        if project is None:
+        owner_id = get_owner_id(project_id)
+        if owner_id == -1:
             return jsonify({'error': 'No such Project'}), 400
-        owner_id = project[0]
+
         if owner_id != data['creator_id']:
             return jsonify({'error': 'Owner ID mismatch'}), 400
 
@@ -476,13 +481,16 @@ def project_all():
 def edit_project_member():
     data = request.get_json()
     current_user = get_jwt_identity()['user_id']
-    required_fields = ['project_id', 'type', 'users', 'owner_id']
+    required_fields = ['project_id', 'type', 'users']
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
 
     project_id = data['project_id']
+    owner_id = get_owner_id(project_id)
+    if owner_id == -1:
+        return jsonify({'error': 'No such Project'}), 400
 
-    if data['owner_id'] != current_user:
+    if owner_id != current_user:
         return jsonify({'error': 'Owner ID mismatch'}), 400
 
     conn = get_db_connection()
