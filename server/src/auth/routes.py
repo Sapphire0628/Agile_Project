@@ -118,14 +118,15 @@ def login():
                     'user_id': user_dict['user_id'],
                     'username': user_dict['username'],
                 })
-                return jsonify({
+                response = jsonify({
                     'message' : 'User login successfully',
-                    'access_token': access_token,
                     'user': {
                         'username': user_dict['username'],
                         'email': user_dict['email']
                     }
-                }), 200
+                })
+                response.headers['Authorization'] = f'Bearer {access_token}'
+                return response, 200 
         
         return jsonify({'error': 'Invalid credentials'}), 401
     
@@ -153,6 +154,7 @@ def logout():
             response = jsonify({'message': 'Successfully logged out'})
             unset_jwt_cookies(response)
             return response, 200
+        
             
         finally:
             conn.close()

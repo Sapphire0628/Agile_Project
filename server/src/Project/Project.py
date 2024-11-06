@@ -1,4 +1,6 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+import jwt
 import os
 import sqlite3
 
@@ -6,7 +8,7 @@ pro_bp = Blueprint('pro', __name__)
 
 
 def get_db_connection():
-    try:
+    try: 
         DB_PATH = os.path.abspath(os.path.join(os.getcwd(), 'database', 'test.db'))
         conn = sqlite3.connect(DB_PATH)
         return conn
@@ -18,12 +20,15 @@ def get_db_connection():
 def get_user_project(user_id):
     conn = get_db_connection()
     try:
-        cursor = conn.execute('''
+        cursor = conn.cursor()
+        cursor.execute('''
                    SELECT DISTINCT p. project_id, p.project_name, p.description,p.owner_id, p.created_at
                    FROM UserTask ut, ProjectTask pt, Projects p
                    WHERE ut.task_id = pt.task_id and ut.user_id = ? AND pt.project_id = p.project_id
                ''', (user_id,))
         projects = cursor.fetchall()
+        projects = [{'project_id': p[0], 'project_name': p[1], 'description': p[2], 'owner_id': p[3], 'created_at': p[4]} for p in projects]
+
         return projects
     except Exception as e:
         print(str(e))
@@ -34,12 +39,16 @@ def get_user_project(user_id):
 def get_own_project(user_id):
     conn = get_db_connection()
     try:
-        cursor = conn.execute('''
+        
+        cursor = conn.cursor()
+        cursor.execute('''
                    SELECT p. project_id, p.project_name, p.description,p.owner_id, p.created_at
                    FROM  Projects p
                    WHERE owner_id = ?
                ''', (user_id,))
         all_project = cursor.fetchall()
+
+        all_project = [{'project_id': p[0], 'project_name': p[1], 'description': p[2], 'owner_id': p[3], 'created_at': p[4]} for p in all_project]
         return all_project
     except Exception as e:
         print(str(e))
@@ -50,12 +59,15 @@ def get_own_project(user_id):
 def get_user_tasks(user_id):
     conn = get_db_connection()
     try:
-        cursor = conn.execute('''
+        cursor = conn.cursor()
+        cursor.execute('''
                        SELECT t.task_id, t.task_name, t.description, t.status, t.priority, t.due_date, t.created_at
                        FROM UserTask ut, Tasks t
                        WHERE ut.user_id = ? AND ut.task_id = t.task_id
                    ''', (user_id,))
         all_task = cursor.fetchall()
+        all_task = [{'task_id': t[0], 'task_name': t[1], 'description': t[2], 'status': t[3], 'priority': t[4], 'due_date': t[5], 'created_at': t[6]} for t in all_task]
+
         return all_task
     finally:
         conn.close()
@@ -85,11 +97,14 @@ def get_project_detail(data):
                 'SELECT DISTINCT username FROM Users u,UserTask ut, ProjectTask pt WHERE u.user_id = ut.user_id and ut.task_id = pt.task_id and pt.project_id = ?',
                 (project_id,))
             members = cursor.fetchall()
+            members = [{'username': m[0]} for m in members]
 
             cursor = conn.execute(
                 'SELECT t.task_id, task_name, description, status, priority, due_date, created_at  FROM Tasks t,ProjectTask pt WHERE t.task_id = pt.task_id and pt.project_id = ?',
                 (project_id,))
             tasks = cursor.fetchall()
+            tasks = [{'task_id': t[0], 'task_name': t[1], 'description': t[2], 'status': t[3], 'priority': t[4], 'due_date': t[5], 'created_at': t[6]} for t in tasks]
+
 
             return jsonify({
                 'message': 'open project successfully',
@@ -143,7 +158,7 @@ def register_task(data):
         # event_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         # Create new Task
-        cursor = conn.execute('''
+        conn.execute('''
                 INSERT INTO Tasks (task_name, description, status, priority, due_date)
                 VALUES (?, ?, ?,?,?)
             ''', (data['task_name'], des, data['status'], data['priority'], data['due_date']))
@@ -172,7 +187,7 @@ def register_task(data):
         conn.close()
 
 
-def register_project(data):
+def register_project(data, access_token):
     # Validate required fields, description is optional
     # project_id, owner_id and created_at are created by server
     required_fields = ['project_name']
@@ -201,15 +216,22 @@ def register_project(data):
                          (data['project_name'], des, data['owner_id']))
         conn.commit()
 
-        return jsonify({'message': 'Project registered successfully'}), 201
+        # Return access token after task registration
+        response = jsonify({'message': 'Project registered successfully',
+                        'owner_id': data['owner_id'],
+                        'project_name':data['project_name']})
+        response.headers['Authorization'] = f'Bearer {access_token}'
+
+        return response, 200 
+    
     except Exception as e:
         print(str(e))
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'Error': str(e)}), 500
     finally:
         conn.close()
 
 
-def delete_project(data):
+def delete_project(data, access_token):
     required_fields = ['project_id', 'creator_id']
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
@@ -230,7 +252,8 @@ def delete_project(data):
 
         conn.execute('''DELETE FROM Projects WHERE project_id = ?''',
                      (project_id,))
-        cursor = conn.execute('''SELECT task_id FROM ProjectTask WHERE ProjectTask.project_id = ?''', (project_id,))
+        cursor = conn.cursor()
+        cursor.execute('''SELECT task_id FROM ProjectTask WHERE ProjectTask.project_id = ?''', (project_id,))
         task_ids = cursor.fetchall()
         for task_id in task_ids:
             id = task_id[0]
@@ -241,7 +264,12 @@ def delete_project(data):
             conn.execute('''DELETE FROM UserTask WHERE task_id = ?''',
                          (id,))
         conn.commit()
-        return jsonify({'message': 'Project deleted successfully'}), 201
+
+        response=  jsonify({'message': 'Project deleted successfully'})
+
+        response.headers['Authorization'] = f'Bearer {access_token}'
+
+        return response, 200 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -288,7 +316,8 @@ def update_task(data):
     conn = get_db_connection()
     task_id = data['task_id']
     try:
-        cursor = conn.execute('''SELECT * FROM Tasks WHERE task_id = ?''',
+        cursor = conn.cursor()
+        cursor.execute('''SELECT * FROM Tasks WHERE task_id = ?''',
                               (task_id,))
         task = cursor.fetchone()
         if task is None:
@@ -323,7 +352,8 @@ def update_task(data):
                             WHERE Tasks.task_id = ?''',
                          (data['due_date'], task_id,))
         if 'user' in data.keys():
-            cursor = conn.execute('''SELECT user_id FROM UserTask WHERE task_id = ?''',
+            cursor = conn.cursor()
+            cursor.execute('''SELECT user_id FROM UserTask WHERE task_id = ?''',
                                   (task_id,))
             id = cursor.fetchall()
             ids = []
@@ -359,16 +389,21 @@ def update_task(data):
         conn.close()
 
 
-def update_project(data):
+def update_project(data, access_token):
     required_fields = ['project_id', 'creator_id', 'owner_id']
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
     conn = get_db_connection()
     project_id = data['project_id']
     try:
-        cursor = conn.execute('''SELECT * FROM Projects WHERE project_id = ?''',
+        cursor = conn.cursor()
+        cursor.execute('''SELECT * FROM Projects WHERE project_id = ?''',
                               (project_id,))
         project = cursor.fetchone()
+        # Convert project tuple to dictionary
+
+
+
         if project is None:
             return jsonify({'error': 'No such Project'}), 400
 
@@ -391,7 +426,11 @@ def update_project(data):
                                 WHERE Projects.project_id = ?''',
                          (data['owner_id'], project_id,))
         conn.commit()
-        return jsonify({'message': 'Project updated successfully'}), 201
+        response =  jsonify({'message': 'Project updated successfully'}) 
+
+        response.headers['Authorization'] = f'Bearer {access_token}'
+
+        return response, 200 
     except Exception as e:
         print(str(e))
         return jsonify({'error': str(e)}), 500
@@ -401,6 +440,7 @@ def update_project(data):
 
 # This page show all task of one task and can register task
 @pro_bp.route('/project_detail', methods=['POST', 'GET', 'DELETE', 'PUT'])
+@jwt_required() 
 def project_detail():
     # 用户注册、更新任务
     data = request.get_json()
@@ -408,7 +448,19 @@ def project_detail():
         return get_project_detail(data)
 
     elif request.method == "POST":
-        return register_task(data)
+        access_token = request.headers.get('Authorization').split(" ")[1]
+
+        current_user = get_jwt_identity()  # This will return the identity you set when creating the token
+        data = request.get_json()
+        data['user'] = current_user['user_name']
+
+        response = register_task(data)
+        if response[1] == 201:  # If task registration is successful
+            # Use the access token from the request headers
+            access_token = request.headers.get('Authorization')
+            if access_token:
+                response[0].headers['Authorization'] = access_token  # Add token to header
+        return response
 
     elif request.method == "DELETE":
         return delete_task(data)
@@ -419,25 +471,59 @@ def project_detail():
 
 # This page show all project and tasks of one user and can register project
 @pro_bp.route('/project', methods=['POST', 'GET', 'DELETE', 'PUT'])
+@jwt_required() 
 def project():
     # 用户注册、更新项目
-    data = request.get_json()
-    print(request.method)
-    if request.method == "GET":
-        all_project = get_user_project(data['user_id'])
-        all_own_project = get_own_project(data['user_id'])
-        all_tasks = get_user_tasks(data['user_id'])
+    
+    current_user = get_jwt_identity()   # This will return the identity you set when creating the token
+    access_token = request.headers.get('Authorization').split(" ")[1]
 
-        return jsonify({'message': 'show all project successfully',
+    if request.method == "GET":
+
+        all_project = get_user_project(current_user['user_id'])
+        all_own_project = get_own_project(current_user['user_id'])
+        all_tasks = get_user_tasks(current_user['user_id'])
+
+        response = jsonify({'message': 'show all project successfully',
                         'project_belong': all_project,
-                        'own_project': all_own_project,
-                        'tasks': all_tasks}), 201
+                        'tasks': all_tasks,
+                        'own_project': all_own_project
+                        })
+        
+        response.headers['Authorization'] = f'Bearer {access_token}'
+
+        return response, 200 
+    
 
     elif request.method == "POST":
-        return register_project(data)
+        data = request.get_json()
+
+        data['owner_id'] = current_user['user_id']
+
+        return register_project(data, access_token)
 
     elif request.method == "DELETE":
-        return delete_project(data)
+        data = request.get_json()
+        data['creator_id'] = current_user['user_id']
+        return delete_project(data, access_token)
 
     elif request.method == "PUT":
-        return update_project(data)
+        data = request.get_json()
+        data['creator_id'] = current_user['user_id']
+        return update_project(data), access_token
+
+
+
+
+@pro_bp.route('/some-protected-route', methods=['GET'])
+@jwt_required()  # This decorator ensures that the user is authenticated
+def protected_route():
+    # Get the current user's identity from the JWT token
+    current_user = get_jwt_identity()  # This will return the identity you set when creating the token
+    user_id = current_user['user_id']  # Extract user_id from the identity
+
+    return jsonify({
+        'message': 'Access granted',
+        'user_id': user_id,
+        'username': current_user
+    }), 200
