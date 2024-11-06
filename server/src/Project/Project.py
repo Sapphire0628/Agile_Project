@@ -187,7 +187,7 @@ def register_task(data):
         conn.close()
 
 
-def register_project(data, access_token):
+def register_project(data):
     # Validate required fields, description is optional
     # project_id, owner_id and created_at are created by server
     required_fields = ['project_name']
@@ -216,11 +216,10 @@ def register_project(data, access_token):
                          (data['project_name'], des, data['owner_id']))
         conn.commit()
 
-        # Return access token after task registration
         response = jsonify({'message': 'Project registered successfully',
                         'owner_id': data['owner_id'],
                         'project_name':data['project_name']})
-        response.headers['Authorization'] = f'Bearer {access_token}'
+        # response.headers['Authorization'] = f'Bearer {access_token}'
 
         return response, 200 
     
@@ -231,7 +230,7 @@ def register_project(data, access_token):
         conn.close()
 
 
-def delete_project(data, access_token):
+def delete_project(data):
     required_fields = ['project_id', 'creator_id']
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
@@ -267,7 +266,7 @@ def delete_project(data, access_token):
 
         response=  jsonify({'message': 'Project deleted successfully'})
 
-        response.headers['Authorization'] = f'Bearer {access_token}'
+        # response.headers['Authorization'] = f'Bearer {access_token}'
 
         return response, 200 
     except Exception as e:
@@ -389,7 +388,7 @@ def update_task(data):
         conn.close()
 
 
-def update_project(data, access_token):
+def update_project(data):
     required_fields = ['project_id', 'creator_id', 'owner_id']
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
@@ -426,9 +425,7 @@ def update_project(data, access_token):
                                 WHERE Projects.project_id = ?''',
                          (data['owner_id'], project_id,))
         conn.commit()
-        response =  jsonify({'message': 'Project updated successfully'}) 
-
-        response.headers['Authorization'] = f'Bearer {access_token}'
+        response =  jsonify({'message': 'Project updated successfully'})
 
         return response, 200 
     except Exception as e:
@@ -448,18 +445,11 @@ def project_detail():
         return get_project_detail(data)
 
     elif request.method == "POST":
-        access_token = request.headers.get('Authorization').split(" ")[1]
-
         current_user = get_jwt_identity()  # This will return the identity you set when creating the token
         data = request.get_json()
-        data['user'] = current_user['user_name']
+        data['creator_id'] = current_user['user_id']
 
         response = register_task(data)
-        if response[1] == 201:  # If task registration is successful
-            # Use the access token from the request headers
-            access_token = request.headers.get('Authorization')
-            if access_token:
-                response[0].headers['Authorization'] = access_token  # Add token to header
         return response
 
     elif request.method == "DELETE":
@@ -476,7 +466,6 @@ def project():
     # 用户注册、更新项目
     
     current_user = get_jwt_identity()   # This will return the identity you set when creating the token
-    access_token = request.headers.get('Authorization').split(" ")[1]
 
     if request.method == "GET":
 
@@ -489,30 +478,23 @@ def project():
                         'tasks': all_tasks,
                         'own_project': all_own_project
                         })
-        
-        response.headers['Authorization'] = f'Bearer {access_token}'
-
         return response, 200 
     
 
     elif request.method == "POST":
         data = request.get_json()
-
         data['owner_id'] = current_user['user_id']
-
-        return register_project(data, access_token)
+        return register_project(data)
 
     elif request.method == "DELETE":
         data = request.get_json()
         data['creator_id'] = current_user['user_id']
-        return delete_project(data, access_token)
+        return delete_project(data)
 
     elif request.method == "PUT":
         data = request.get_json()
         data['creator_id'] = current_user['user_id']
-        return update_project(data), access_token
-
-
+        return update_project(data)
 
 
 @pro_bp.route('/some-protected-route', methods=['GET'])
