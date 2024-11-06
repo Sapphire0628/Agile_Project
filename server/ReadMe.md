@@ -1,6 +1,7 @@
 # API 接口
 
 Local   : http://localhost:8000/
+
 Replite : https://8a74705f-88cc-40ba-af38-3379f495a983-00-1npdqf5pljqau.pike.replit.dev/
 
 ## Sign Up Example
@@ -50,6 +51,7 @@ curl -X POST http://localhost:8000/auth/logout \
 > {'message': 'Successfully logged out'}
 
 ## Retrieval users profile for testing authorization token(For development/testing usage)
+
 ```
 # 1. Login and save token
 TOKEN=$(curl -s -X POST http://localhost:8000/auth/login \
@@ -64,6 +66,26 @@ curl -X GET http://localhost:8000/auth/me \
 ```
 #### Output
 > {'message': 'User retrieval successfully', 'user': {'email': 'test@example.com', 'user_id': 1, 'username': 'testuser'}}
+
+
+## Create Project
+
+```
+curl -X POST http://localhost:8000/pro/project \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <your_token_here>" \
+     -d '{
+           "project_name": "DE Project",
+           "description": "This is a DE project"
+         }'
+```
+
+#### Output
+
+>response.json = {'message': 'Project registered successfully','owner_id': 1,'project_name':'DE Project'}
+>response.headers = {'Server': 'Werkzeug/3.0.4 Python/3.9.16', 'Date': 'Wed, 06 Nov 2024 05:49:55 GMT', 'Content-Type': 'application/json', 'Content-Length': '87', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTczMDg3MDE0MywianRpIjoiZTljODdiYTUtZjI4MC00MGIzLTg4MGMtYjBmMmE5ZWEwZjhmIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRlc3R1c2VyIn0sIm5iZiI6MTczMDg3MDE0MywiY3NyZiI6ImQ2OWE1ZmFlLWVlYTgtNGJkOS1hMjE2LTk2Zjk0ZTdkY2QzMSIsImV4cCI6MTczMDk1NjU0M30.ygWHiM9jk5Y4yOO0nYLvMFOA1xvG7C1FhehJnusz1tg', 'Access-Control-Allow-Origin': '*', 'Connection': 'close'}
+
+
 
 
 
