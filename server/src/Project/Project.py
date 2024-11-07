@@ -149,11 +149,19 @@ def register_task(data):
             return jsonify({'error': 'Owner ID mismatch'}), 400
 
         user_id = []
+        invalid_name = []
         # through user_name get user_id
         for user in data['users']:
             cursor = conn.execute('SELECT user_id FROM Users WHERE username = ?',
                                   (user,))
-            user_id.append(cursor.fetchone()[0])
+            i = cursor.fetchone()
+            if i is None:
+                invalid_name.append(user)
+            else:
+                user_id.append(i[0])
+
+        if len(invalid_name) != 0:
+            return jsonify({'err': 'Invalid user.', 'users:': invalid_name}), 400
 
 
         cursor = conn.execute('SELECT user_id FROM UserProject WHERE project_id = ?',
@@ -384,13 +392,20 @@ def update_task(data):
                 ids.append(item[0])
 
             users_id = []
+            invalid_name = []
             # through user_name get user_id
             for user in data['user']['users']:
                 cursor = conn.execute('SELECT user_id FROM Users WHERE username = ?',
                                       (user,))
-                users_id.append(cursor.fetchone()[0])
-            print(users_id)
-            print(ids)
+                i = cursor.fetchone()
+                if i is None:
+                    invalid_name.append(user)
+                else:
+                    users_id.append(i[0])
+
+            if len(invalid_name) != 0:
+                return jsonify({'err': 'Invalid user.', 'users:': invalid_name}), 400
+
             if data['user']['type'] == 'add':
                 common_elements = set(ids) & set(users_id)
                 if common_elements:
@@ -503,11 +518,19 @@ def edit_project_member():
         for item in id:
             ids.append(item[0])
         user_ids = []
+        invalid_name = []
         # through user_name get user_id
         for user in data['users']:
             cursor = conn.execute('SELECT user_id FROM Users WHERE username = ?',
                                   (user,))
-            user_ids.append(cursor.fetchone()[0])
+            i = cursor.fetchone()
+            if i is None:
+                invalid_name.append(user)
+            else:
+                user_ids.append(i[0])
+
+        if len(invalid_name) != 0:
+            return jsonify({'err': 'Invalid user.', 'users:': invalid_name}), 400
 
         if data['type'] == 'add':
             common_elements = set(ids) & set(user_ids)
