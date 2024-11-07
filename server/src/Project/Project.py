@@ -491,73 +491,94 @@ def project_all():
     finally:
         conn.close()
 
-@pro_bp.route('/edit_project_member', methods=['POST'])
+@pro_bp.route('/edit_project_member', methods=['GET', 'POST'])
 @jwt_required()
 def edit_project_member():
     data = request.get_json()
     current_user = get_jwt_identity()['user_id']
-    required_fields = ['project_id', 'type', 'users']
-    if not all(field in data for field in required_fields):
-        return jsonify({'error': 'Missing required fields'}), 400
 
-    project_id = data['project_id']
-    owner_id = get_owner_id(project_id)
-    if owner_id == -1:
-        return jsonify({'error': 'No such Project'}), 400
+    if request.method == "GET":
+        required_fields = ['project_id']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
 
-    if owner_id != current_user:
-        return jsonify({'error': 'Owner ID mismatch'}), 400
+        project_id = data['project_id']
+        conn = get_db_connection()
 
-    conn = get_db_connection()
-    try:
         cursor = conn.cursor()
-        cursor.execute('''SELECT user_id FROM UserProject WHERE project_id = ?''',
-                       (project_id,))
-        id = cursor.fetchall()
-        ids = []
-        for item in id:
-            ids.append(item[0])
-        user_ids = []
-        invalid_name = []
-        # through user_name get user_id
-        for user in data['users']:
-            cursor = conn.execute('SELECT user_id FROM Users WHERE username = ?',
-                                  (user,))
-            i = cursor.fetchone()
-            if i is None:
-                invalid_name.append(user)
+        cursor.execute('''
+                           SELECT username
+                           FROM  Users u, UserProject up
+                           WHERE up.project_id = ? and up.user_id = u.user_id
+                       ''', (project_id,))
+        all_users = cursor.fetchall()
+        all_users = [ p[0] for p in all_users]
+
+        return jsonify({'users': all_users}), 200
+
+    elif request.method == "POST":
+        required_fields = ['project_id', 'type', 'users']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        project_id = data['project_id']
+        owner_id = get_owner_id(project_id)
+        if owner_id == -1:
+            return jsonify({'error': 'No such Project'}), 400
+
+        if owner_id != current_user:
+            return jsonify({'error': 'Owner ID mismatch'}), 400
+
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''SELECT user_id FROM UserProject WHERE project_id = ?''',
+                           (project_id,))
+            id = cursor.fetchall()
+            ids = []
+            for item in id:
+                ids.append(item[0])
+            user_ids = []
+            invalid_name = []
+            # through user_name get user_id
+            for user in data['users']:
+                cursor = conn.execute('SELECT user_id FROM Users WHERE username = ?',
+                                      (user,))
+                i = cursor.fetchone()
+                if i is None:
+                    invalid_name.append(user)
+                else:
+                    user_ids.append(i[0])
+
+            if len(invalid_name) != 0:
+                return jsonify({'err': 'Invalid user.', 'users:': invalid_name}), 400
+
+            if data['type'] == 'add':
+                common_elements = set(ids) & set(user_ids)
+                if common_elements:
+                    return jsonify({'err': 'user already exits.', 'users:': list(common_elements)}), 400
+
+                for user_id in user_ids:
+                    conn.execute('''INSERT INTO UserProject (user_id, project_id) VALUES (?, ?)''',
+                                 (user_id, project_id,))
+                conn.commit()
+                return jsonify({'msg': 'Added project members Successfully'}), 200
+
+            elif data['type'] == 'remove':
+                different_elements = set(user_ids).difference(set(ids))
+                if different_elements:
+                    return jsonify({'err': 'user not exits.', 'users:': list(different_elements)}), 400
+                for user_id in user_ids:
+                    conn.execute('''DELETE FROM UserProject WHERE  user_id = ? and project_id = ?''',
+                                 (user_id, project_id,))
+                conn.commit()
+                return jsonify({'msg': 'Removed project members Successfully'}), 200
             else:
-                user_ids.append(i[0])
-
-        if len(invalid_name) != 0:
-            return jsonify({'err': 'Invalid user.', 'users:': invalid_name}), 400
-
-        if data['type'] == 'add':
-            common_elements = set(ids) & set(user_ids)
-            if common_elements:
-                return jsonify({'err': 'user already exits.', 'users:': list(common_elements)}), 400
-
-            for user_id in user_ids:
-                conn.execute('''INSERT INTO UserProject (user_id, project_id) VALUES (?, ?)''',
-                             (user_id, project_id,))
-            conn.commit()
-            return jsonify({'msg': 'Added project members Successfully'}), 200
-
-        elif data['type'] == 'remove':
-            different_elements = set(user_ids).difference(set(ids))
-            if different_elements:
-                return jsonify({'err': 'user not exits.', 'users:': list(different_elements)}), 400
-            for user_id in user_ids:
-                conn.execute('''DELETE FROM UserProject WHERE  user_id = ? and project_id = ?''',
-                             (user_id, project_id,))
-            conn.commit()
-            return jsonify({'msg': 'Removed project members Successfully'}), 200
-        else:
-            return jsonify({'err': 'No such opration'}), 400
-    except Exception as e:
-        print(str(e))
-    finally:
-        conn.close()
+                return jsonify({'err': 'No such opration'}), 400
+        except Exception as e:
+            print(str(e))
+        finally:
+            conn.close()
 
 # This page show all task of one task and can register task
 @pro_bp.route('/project_detail', methods=['POST', 'GET', 'DELETE', 'PUT'])
