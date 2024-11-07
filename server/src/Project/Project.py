@@ -611,9 +611,6 @@ def project():
     # 用户注册、更新项目
     
     current_user = get_jwt_identity()   # This will return the identity you set when creating the token
-    data = request.get_json()
-    data['creator_id'] = current_user['user_id']
-
     if request.method == "GET":
 
         all_project = get_user_project(current_user['user_id'])
@@ -629,12 +626,18 @@ def project():
     
 
     elif request.method == "POST":
+        data = request.get_json()
+        data['creator_id'] = current_user['user_id']
         return register_project(data)
 
     elif request.method == "DELETE":
+        data = request.get_json()
+        data['creator_id'] = current_user['user_id']
         return delete_project(data)
 
     elif request.method == "PUT":
+        data = request.get_json()
+        data['creator_id'] = current_user['user_id']
         return update_project(data)
 
 
