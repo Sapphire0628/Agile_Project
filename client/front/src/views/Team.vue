@@ -5,10 +5,39 @@
     <v-main>
       <v-container fluid>
         <div class="team-section">
+          <v-row class="mb-6">
+            <v-col cols="12" sm="6">
+              <v-card class="stats-card">
+                <v-card-text class="text-center">
+                  <div class="text-h4 mb-2">{{ members.length }}</div>
+                  <div class="text-subtitle-1">团队成员</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-card class="stats-card">
+                <v-card-text class="text-center">
+                  <div class="text-h4 mb-2">{{ selectedMembers.length }}</div>
+                  <div class="text-subtitle-1">已选成员</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+
           <v-card flat class="mb-6">
             <v-toolbar flat color="transparent" class="px-4">
-              <v-toolbar-title class="text-h5">Team Members</v-toolbar-title>
+              <v-toolbar-title class="text-h4 font-weight-bold">Team Members</v-toolbar-title>
               <v-spacer></v-spacer>
+              <v-text-field
+                v-model="search"
+                prepend-inner-icon="mdi-magnify"
+                label="搜索成员"
+                single-line
+                hide-details
+                density="compact"
+                class="mr-4"
+                style="max-width: 300px"
+              ></v-text-field>
               <v-btn
                 icon
                 color="error"
@@ -30,40 +59,47 @@
             </v-toolbar>
           </v-card>
 
-          <v-card flat>
-            <v-list>
-              <v-list-item
-                v-for="member in members"
-                :key="member.username"
-                :class="{'selected': selectedMembers.includes(member)}"
-                @click="toggleMemberSelection(member)"
-                class="member-item"
-                density="compact"
-              >
-                <template v-slot:prepend>
-                  <v-avatar :color="getRandomColor(member.username)" size="36" class="mr-3">
-                    <span class="text-subtitle-2 white--text">
-                      {{ member.username ? member.username.charAt(0).toUpperCase() : '?' }}
-                    </span>
-                  </v-avatar>
-                </template>
-
-                <v-list-item-title class="text-subtitle-1">
-                  {{ member.username }}
-                </v-list-item-title>
-
-                <template v-slot:append>
-                  <v-checkbox-btn
-                    v-model="selectedMembers"
-                    :value="member"
-                    hide-details
-                    density="compact"
-                    class="ml-2"
-                  ></v-checkbox-btn>
-                </template>
-              </v-list-item>
-            </v-list>
-          </v-card>
+          <div class="pa-4">
+            <div class="members-container">
+              <v-row class="ma-0">
+                <v-col
+                  v-for="member in filteredMembers"
+                  :key="member.username"
+                  cols="12"
+                  sm="6"
+                  md="4"
+                  lg="3"
+                  class="pa-2"
+                >
+                  <v-card
+                    :class="{'member-card': true, 'selected': selectedMembers.includes(member)}"
+                    @click="toggleMemberSelection(member)"
+                    elevation="2"
+                  >
+                    <v-card-text class="pa-4">
+                      <div class="d-flex align-center">
+                        <v-avatar :color="getRandomColor(member.username)" size="48" class="mr-3">
+                          <span class="text-h6 white--text">
+                            {{ member.username ? member.username.charAt(0).toUpperCase() : '?' }}
+                          </span>
+                        </v-avatar>
+                        <div class="member-info flex-grow-1">
+                          <div class="text-h6 font-weight-medium">{{ member.username }}</div>
+                        </div>
+                        <v-checkbox-btn
+                          v-model="selectedMembers"
+                          :value="member"
+                          hide-details
+                          density="compact"
+                          @click.stop
+                        ></v-checkbox-btn>
+                      </div>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
+            </div>
+          </div>
         </div>
 
         <v-dialog v-model="showAddMemberDialog" max-width="500px">
@@ -131,7 +167,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Header from '@/components/Header.vue'
 import SideBar from '@/components/SideBar.vue'
@@ -163,6 +199,14 @@ export default {
     const usernameError = ref('')
     const addingMember = ref(false)
     const deletingMembers = ref(false)
+
+    const search = ref('')
+
+    const filteredMembers = computed(() => {
+      return members.value.filter(member =>
+        member.username.toLowerCase().includes(search.value.toLowerCase())
+      )
+    })
 
     const getRandomColor = (username) => {
       if (!username) return '#2196F3'
@@ -261,7 +305,9 @@ export default {
       addMember,
       deleteSelectedMembers,
       closeAddMemberDialog,
-      toggleMemberSelection
+      toggleMemberSelection,
+      search,
+      filteredMembers
     }
   }
 }
@@ -270,28 +316,56 @@ export default {
 <style scoped>
 .team-section {
   padding: 24px;
+  background-color: rgb(var(--v-theme-background));
 }
 
-.member-item {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+.members-container {
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.members-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.members-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.members-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.members-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.member-card {
   transition: all 0.2s ease;
-  min-height: 56px;
-  padding: 0 16px;
+  cursor: pointer;
+  border: 2px solid transparent;
 }
 
-.member-item :deep(.v-list-item__content) {
-  padding: 8px 0;
+.member-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
 }
 
-.member-item:hover {
-  background-color: rgba(0, 0, 0, 0.04);
+.member-card.selected {
+  border-color: var(--v-theme-primary);
+  background-color: rgba(var(--v-theme-primary), 0.05);
 }
 
-.member-item.selected {
-  background-color: rgba(var(--v-theme-primary), 0.1);
+.member-info {
+  overflow: hidden;
 }
 
-.member-item:last-child {
-  border-bottom: none;
+.member-info .text-h6 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>
