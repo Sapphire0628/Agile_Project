@@ -9,16 +9,21 @@ import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import router from './router/router.js'
 import '@fortawesome/fontawesome-free/css/all.css';
+import '@mdi/font/css/materialdesignicons.css';
 import axios from 'axios'
 import store from './store'
-
+import { aliases, mdi } from 'vuetify/iconsets/mdi'
 library.add(fas)
 
 const vuetify = createVuetify({
     components,
     directives,
     icons: {
-        iconfont: 'fa'
+        defaultSet: 'mdi',
+        aliases,
+        sets: {
+            mdi
+        }
     }
 })
 const app = createApp(App)

@@ -12,14 +12,14 @@
                 :rules="usernameRules"
                 :counter="10"
                 required
-                prepend-inner-icon="fa fa-user"
+                prepend-inner-icon="mdi mdi-account"
               ></v-text-field>
                 <v-text-field
                   v-model="password"
                   :rules="passwordRules"
                   label="密码"
                   required
-                  prepend-inner-icon="fa fa-lock"
+                  prepend-inner-icon="mdi mdi-lock"
                 ></v-text-field>
               </v-form>
                 <v-card-actions class="d-flex justify-center">
@@ -60,6 +60,7 @@ export default {
           .then(response => {
             const token = response.data.token
             this.$store.dispatch('user/login', token)
+            this.$store.dispatch('user/setUsername', this.username)
             this.$router.push('/home')
             console.log('登录成功')
           })

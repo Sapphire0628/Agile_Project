@@ -23,17 +23,15 @@ request.interceptors.request.use(
 )
 
 // 响应拦截器
-request.interceptors.response.use(
-    response => {
-        const res = response.data
-        // 这里可以根据后端的响应结构做统一的处理
-        return res
-    },
-    error => {
-        console.error('响应错误：', error)
-        // 这里可以统一处理错误，比如401、500等状态码
-        return Promise.reject(error)
-    }
-)
+// request.interceptors.response.use(
+//     response => {
+//         const res = response.data
+//         return res
+//     },
+//     error => {
+//         console.error('响应错误：', error)
+//         return Promise.reject(error)
+//     }
+// )
 
 export default request

@@ -1,10 +1,10 @@
 <template>
   <v-card variant="outlined" class="project-card mb-3 rounded-lg" elevation="0" hover>
-    <div class="d-flex pa-4">
+    <div class="d-flex pa-4 clickable" @click="handleCardClick">
       <!-- 左侧头像部分 -->
       <v-avatar
         size="50"
-        class="mr-4 project-avatar"
+        class="mr-4 project-avatar flex-shrink-0"
         :color="`rgb(${getRandomColor()})`"
       >
         <span class="text-h6 font-weight-medium white--text">
@@ -13,11 +13,10 @@
       </v-avatar>
       
       <!-- 右侧内容部分 -->
-      <div class="flex-grow-1">
+      <div class="flex-grow-1 min-width-0">
         <div class="d-flex justify-space-between align-center mb-3">
-          <div class="d-flex align-center">
-            <h3 class="text-h5 font-weight-medium mb-0 mr-4">{{ project.project_name }}</h3>
-            <!-- 创建日期 -->
+          <div class="d-flex flex-column flex-grow-1 min-width-0 mr-4">
+            <h3 class="text-h5 font-weight-medium mb-1 text-truncate">{{ project.project_name }}</h3>
             <div class="text-caption text-grey">
               <v-icon size="small" class="mr-1">mdi-clock-outline</v-icon>
               {{ formatDate(project.created_at) }}
@@ -29,8 +28,8 @@
           variant="tonal"   
           size="small"
           color="error"
-          class="delete-btn"
-            @click="confirmDelete"
+          class="delete-btn flex-shrink-0"
+            @click.stop="confirmDelete"
             :ripple="false" 
           >
           </v-btn>
@@ -42,6 +41,7 @@
         </p>
       </div>
     </div>
+    
 
     <!-- 确认删除对话框 -->
     <v-dialog v-model="showDeleteDialog" max-width="400">
@@ -76,7 +76,7 @@
 </template>
 
 <script>
-import { deleteProject } from '@/api/project' // 需要创建这个 API 函数
+import { deleteProject } from '@/api/project'
 
 export default {
   name: 'ProjectCard',
@@ -85,9 +85,13 @@ export default {
       type: Object,
       required: true,
       validator: (obj) => {
+        console.log(obj)
         return typeof obj.project_name === 'string' && obj.project_name.length > 0
       }
     }
+  },
+  mounted(){
+    console.log('ProjectCard mounted, project:',this.project)
   },
   data() {
     return {
@@ -114,9 +118,6 @@ export default {
       ];
       return colors[Math.floor(Math.random() * colors.length)];
     },
-    confirmDelete() {
-      this.showDeleteDialog = true
-    },
     async deleteProject() {
       try {
         this.isDeleting = true
@@ -130,6 +131,12 @@ export default {
       } finally {
         this.isDeleting = false
       }
+    },
+    handleCardClick(){
+      this.$router.push(`/project/${this.project.project_id}`)
+    },
+    confirmDelete() {
+      this.showDeleteDialog = true
     }
   }
 }
@@ -161,16 +168,24 @@ export default {
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  word-break: break-word;
+  margin-bottom: 0;
+}
+
+.text-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .v-chip {
   font-weight: 500;
 }
 
-/* 新增：确保日期和项目名称在同一行时对齐 */
 .text-h5 {
   line-height: 1.4;
-  font-size: 1.5rem !important;
+  font-size: 1.25rem !important;
 }
 
 .text-caption {
@@ -182,9 +197,18 @@ export default {
 .delete-btn {
   opacity: 1;
   transition: all 0.2s ease;
+  margin-left: 8px;
 }
 
 .delete-btn:hover {
   transform: scale(1.1);
+}
+
+.min-width-0 {
+  min-width: 0;
+} 
+
+.flex-shrink-0 {
+  flex-shrink: 0;
 }
 </style>

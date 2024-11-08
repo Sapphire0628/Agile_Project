@@ -30,3 +30,19 @@ export const updateProject = (data) => {
         data,
     })
 }
+
+export const getProjectMembers = (params) => {
+    return request({
+        url: `/pro/edit_project_member`,
+        method: 'get',
+        params
+    })
+}
+
+export const manageProjectMember = (data) => {
+    return request({
+        url: `/pro/edit_project_member`,
+        method: 'post',
+        data,
+    })
+}

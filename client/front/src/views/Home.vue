@@ -74,12 +74,11 @@ export default {
     const router = useRouter()
     const workingProjects = computed(() => store.getters['project/getWorkingProjects'])
     const ownedProjects = computed(() => store.getters['project/getOwnedProjects'])
-    // 简化后的获取项目数据函数
     const fetchProjects = async () => {
       try {
         const response = await getProjects()
-        const workingProjects = response.project_belong
-        const ownedProjects = response.own_project
+        const workingProjects = response.data.project_belong
+        const ownedProjects = response.data.own_project
         store.commit('project/SET_WORKING_PROJECTS', workingProjects)
         store.commit('project/SET_OWNED_PROJECTS', ownedProjects)
       } catch (err) {
@@ -95,9 +94,7 @@ export default {
 
     // 组件挂载时获取数据
     onMounted(() => {
-      if (workingProjects.value.length === 0) {
         fetchProjects()
-      }
     })
     return {
       workingProjects,
@@ -117,12 +114,11 @@ export default {
 }
 
 .projects-container {
-  max-height: 600px; /* 或其他合适的高度 */
+  max-height: 600px; 
   overflow-y: auto;
-  padding-right: 8px; /* 为滚动条留出空间 */
+  padding-right: 8px; 
 }
 
-/* 自定义滚动条样式 */
 .projects-container::-webkit-scrollbar {
   width: 6px;
 }

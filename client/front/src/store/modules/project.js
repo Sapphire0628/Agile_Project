@@ -1,6 +1,7 @@
 const state = {
     workingProjects: [],
     ownedProjects: [],
+    currentProjectId: localStorage.getItem('currentProjectId') || null,
     loading: false,
     error: null
   }
@@ -18,6 +19,14 @@ const state = {
     SET_ERROR(state, error) {
       state.error = error
     },
+    SET_CURRENT_PROJECT_ID(state, projectId) {
+      state.currentProjectId = projectId
+      if (projectId) {
+        localStorage.setItem('currentProjectId', projectId)
+      } else {
+        localStorage.removeItem('currentProjectId')
+      }
+    },
     REMOVE_PROJECT(state, projectId) {
       state.ownedProjects = state.ownedProjects.filter(
         project => project.project_id !== projectId
@@ -32,8 +41,10 @@ const state = {
     getWorkingProjects: state => state.workingProjects,
     getOwnedProjects: state => state.ownedProjects,
     isLoading: state => state.loading,
-    getError: state => state.error
+    getError: state => state.error,
+    getCurrentProjectId: state => state.currentProjectId,
   }
+
   
   export default {
     namespaced: true,

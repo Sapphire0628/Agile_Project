@@ -12,21 +12,21 @@
                 :rules="usernameRules"
                 :counter="10"
                 required
-                prepend-inner-icon="fa fa-user"
+                prepend-inner-icon="mdi-account"
               ></v-text-field>
               <v-text-field
                 v-model="email"
                 :rules="emailRules"
                 label="电子邮件"
                 required
-                prepend-inner-icon="fa fa-envelope"
+                prepend-inner-icon="mdi-email"
               ></v-text-field>
               <v-text-field
                 v-model="password"
                 :rules="passwordRules"
                 label="密码"
                 required
-                prepend-inner-icon="fa fa-lock"
+                prepend-inner-icon="mdi-lock"
               ></v-text-field>
             </v-form>
               <v-card-actions class="d-flex justify-center">

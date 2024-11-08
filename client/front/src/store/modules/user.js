@@ -1,33 +1,38 @@
 const state = {
-    token: localStorage.getItem('token') || ''
+    token: localStorage.getItem('token') || '',
+    username: localStorage.getItem('username') || ''
   }
   
   const mutations = {
     SET_TOKEN(state, token) {
       state.token = token
-      // 同时存入 localStorage
       localStorage.setItem('token', token)
     },
     REMOVE_TOKEN(state) {
       state.token = ''
-      // 同时从 localStorage 移除
       localStorage.removeItem('token')
+    },
+    SET_USERNAME(state, username) {
+      state.username = username
+      localStorage.setItem('username', username)
     }
   }
   
   const actions = {
-    // 登录成功后保存 token
     login({ commit }, token) {
       commit('SET_TOKEN', token)
     },
-    // 登出时清除 token  
     logout({ commit }) {
       commit('REMOVE_TOKEN')
+    },
+    setUsername({ commit }, username) {
+      commit('SET_USERNAME', username)
     }
   }
 
   const getters = {
-    token: state => state.token
+    token: state => state.token,
+    username: state => state.username
   }
   
   export default {
