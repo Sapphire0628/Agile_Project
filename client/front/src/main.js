@@ -13,6 +13,9 @@ import '@mdi/font/css/materialdesignicons.css';
 import axios from 'axios'
 import store from './store'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
+import Toast from 'vue-toastification'
+import 'vue-toastification/dist/index.css'
+
 library.add(fas)
 
 const vuetify = createVuetify({
@@ -54,5 +57,16 @@ app.component('font-awesome-icon', FontAwesomeIcon)
 app.use(store)
 app.use(vuetify)
 app.use(router)
+app.use(Toast,{
+  position: 'top-right',
+  timeout: 3000,
+  closeOnClick: true,
+  pauseOnHover: true,
+  draggable: true,
+  draggablePercent: 0.6,
+  showCloseButtonOnHover: false,
+  hideProgressBar: true,
+  closeButton: 'button'
+})
 app.mount('#app')
 
