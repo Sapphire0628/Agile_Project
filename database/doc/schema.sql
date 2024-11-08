@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS Tasks (
     task_name VARCHAR(255) NOT NULL,
     description VARCHAR(255),
     status TEXT CHECK(status IN ('Not start', 'Started', 'Testing', 'Review', 'Done')) DEFAULT 'Not start',
-    priority TEXT CHECK(priority IN ('Low', 'Medium', 'High')) DEFAULT 'Medium',
+    priority INTEGER,
     due_date DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

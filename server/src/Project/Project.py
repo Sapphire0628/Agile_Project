@@ -152,9 +152,18 @@ def get_project_detail(data):
 def register_task(data):
     # Validate required fields, description is option
     #  task_id and created_at are created by server
-    required_fields = ['task_name', 'status', 'priority', 'due_date', 'users','project_id']
+    required_fields = ['task_name', 'project_id']
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
+
+    if 'status' not in data.keys():
+        data['status'] = 'Not start'
+
+    if 'priority' not in data.keys():
+        data['priority'] = '0'
+
+    if 'description' not in data.keys():
+        data['description'] = ""
 
     conn = get_db_connection()
     try:
@@ -165,62 +174,66 @@ def register_task(data):
         if owner_id != data['creator_id']:
             return jsonify({'error': 'Owner ID mismatch'}), 400
 
-        user_id = []
-        invalid_name = []
-        # through user_name get user_id
-        for user in data['users']:
-            cursor = conn.execute('SELECT user_id FROM Users WHERE username = ?',
-                                  (user,))
-            i = cursor.fetchone()
-            if i is None:
-                invalid_name.append(user)
-            else:
-                user_id.append(i[0])
 
-        if len(invalid_name) != 0:
-            return jsonify({'err': 'Invalid user.', 'users:': invalid_name}), 400
-
-
-        cursor = conn.execute('SELECT user_id FROM UserProject WHERE project_id = ?',
-                              (data['project_id'],))
-        ids = cursor.fetchall()
-        valid_id = []
-        for id in ids:
-            valid_id.append(id[0])
-        project_owner = get_owner_id(project_id=data['project_id'])
-        valid_id.append(project_owner)
-
-        if not set(user_id).issubset(valid_id):
-            return jsonify({'error': 'Invalid User ID'}), 400
-
-        if 'description' not in data.keys():
-            des = ""
+        if not 'due_date' in data.keys():
+            cursor = conn.execute('''
+                            INSERT INTO Tasks (task_name, description, status, priority)
+                            VALUES (?, ?, ?,?)
+                        ''', (data['task_name'], data['description'], data['status'], data['priority']))
+            conn.commit()
         else:
-            des = data['description']
-        # event_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            cursor = conn.execute('''
+                            INSERT INTO Tasks (task_name, description, status, priority,due_date)
+                            VALUES (?, ?, ?,?,?)
+                        ''', (data['task_name'], data['description'], data['status'], data['priority'], data['due_date']))
+            conn.commit()
 
-        # Create new Task
-        cursor = conn.execute('''
-                INSERT INTO Tasks (task_name, description, status, priority, due_date)
-                VALUES (?, ?, ?,?,?)
-            ''', (data['task_name'], des, data['status'], data['priority'], data['due_date']))
-        conn.commit()
         index = cursor.lastrowid
 
         # Create new Project_Task
         conn.execute('''
-                INSERT INTO ProjectTask (project_id, task_id)
-                VALUES (?, ?)
-            ''', (data['project_id'], index))
+                        INSERT INTO ProjectTask (project_id, task_id)
+                        VALUES (?, ?)
+                    ''', (data['project_id'], index))
         conn.commit()
 
-        # Create new UserTask
-        for user in user_id:
-            conn.execute('''
-                            INSERT INTO UserTask (user_id, task_id)
-                            VALUES (?, ?)''',
-                         (user, index))
-        conn.commit()
+        if 'users' in data.keys():
+            user_id = []
+            invalid_name = []
+            # through user_name get user_id
+            for user in data['users']:
+                cursor = conn.execute('SELECT user_id FROM Users WHERE username = ?',
+                                      (user,))
+                i = cursor.fetchone()
+                if i is None:
+                    invalid_name.append(user)
+                else:
+                    user_id.append(i[0])
+
+            if len(invalid_name) != 0:
+                return jsonify({'err': 'Invalid user.', 'users:': invalid_name}), 400
+
+
+            cursor = conn.execute('SELECT user_id FROM UserProject WHERE project_id = ?',
+                                  (data['project_id'],))
+            ids = cursor.fetchall()
+            valid_id = []
+            for id in ids:
+                valid_id.append(id[0])
+            project_owner = get_owner_id(project_id=data['project_id'])
+            valid_id.append(project_owner)
+
+            if not set(user_id).issubset(valid_id):
+                return jsonify({'error': 'Invalid User ID'}), 400
+
+            # Create new UserTask
+            for user in user_id:
+                conn.execute('''
+                                INSERT INTO UserTask (user_id, task_id)
+                                VALUES (?, ?)''',
+                             (user, index))
+            conn.commit()
+
         return jsonify({'message': 'Task registered successfully'}), 201
 
     except Exception as e:
