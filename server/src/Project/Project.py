@@ -4,6 +4,9 @@ import jwt
 import os
 import sqlite3
 
+from tornado.process import task_id
+from win32comext.shell.demos.servers.folder_view import tasks
+
 pro_bp = Blueprint('pro', __name__)
 
 
@@ -22,6 +25,7 @@ def get_owner_id(project_id):
     cursor = conn.execute('SELECT owner_id FROM Projects WHERE project_id = ?',
                           (project_id,))
     owner_id = cursor.fetchone()
+    conn.close()
     if owner_id is None:
         return -1
     else:
@@ -38,8 +42,54 @@ def ids_to_names(ids):
         id = cursor.fetchone()
         if id:
             users.append(id[0])
+    conn.close()
     return users
 
+def get_sprint(args):
+    project_id = args['project_id']
+
+    conn = get_db_connection()
+    try:
+        # get sprint detail
+        cursor = conn.execute('SELECT * FROM Projects WHERE project_id = ?', (project_id,))
+        pro = cursor.fetchone()
+
+        if pro:
+            cursor = conn.cursor()
+            cursor.execute(''' SELECT round, task_id, start_at, due_date, name FROM  Sprint WHERE  project_id = ?
+                                       ''', (project_id,))
+            sprints = cursor.fetchall()
+            print(str(sprints))
+            test = {}
+            for sprint in sprints:
+                round = sprint[0]
+                task_id = sprint[1]
+                start_at = sprint[2]
+                due_date = sprint[3]
+                name = sprint[4]
+                if round not in test.keys():
+                    test[round] = {}
+                test[round]['round'] = round
+                test[round]['start_at'] = start_at
+                test[round]['due_date'] = due_date
+                test[round]['name'] = name
+
+                if 'tasks' not in test[round].keys():
+                    test[round]['tasks'] = []
+                if task_id is None:
+                    continue
+                cursor = conn.execute(
+                    '''SELECT task_name FROM Tasks WHERE task_id = ?''', (task_id,))
+                taskname = cursor.fetchone()[0]
+                test[round]['tasks'].append(taskname)
+
+            return jsonify(test), 200
+        else:
+            return jsonify({'error': 'Invalid Project id'}), 401
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 
 def get_user_project(user_id):
     conn = get_db_connection()
@@ -284,6 +334,59 @@ def register_project(data):
     finally:
         conn.close()
 
+def register_sprint(data):
+    # Validate required fields, description is optional
+    required_fields = ['name','project_id']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    owner_id = get_owner_id(data['project_id'])
+    if owner_id == -1:
+        return jsonify({'error': 'No such project'}), 400
+
+    if owner_id != data['creator_id']:
+        return jsonify({'error': 'Owner ID mismatch'}), 400
+    conn = get_db_connection()
+
+    try:
+        if 'round' not in data.keys():
+            data['round'] = 0
+        if 'due_date' not in data.keys():
+            data['due_date'] = None
+        # if 'start_at' not in data.keys():
+        #     data['start_at'] = None
+
+        if 'tasks' not in data.keys():
+            conn.execute('''
+            INSERT INTO Sprint (round, name, project_id, due_date) values (?,?,?,?)''',
+                         (data['round'],data['name'],data['project_id'], data['due_date']))
+            conn.commit()
+            return jsonify({'message': 'Sprint registered successfully'}), 200
+        else:
+            cursor = conn.cursor()
+            cursor.execute('''
+                               SELECT task_id
+                               FROM  ProjectTask
+                               WHERE project_id = ?
+                           ''', (data['project_id'],))
+            valid_task = cursor.fetchall()
+            valid_task = [ t[0] for t in valid_task ]
+            different_item = set(data['tasks']).difference(set(valid_task))
+            if different_item:
+                return jsonify({'error': 'Invalid Task id', 'Tasks:': list(different_item)}), 400
+
+            for task_id in data['tasks']:
+                conn.execute('''
+                INSERT INTO Sprint (round, name, project_id, due_date, task_id) values (?,?,?,?,?)''',
+                             (data['round'], data['name'], data['project_id'], data['due_date'],task_id))
+            conn.commit()
+            return jsonify({'message': 'Sprint registered successfully'}), 200
+
+    except Exception as e:
+        print(str(e))
+        return jsonify({'Error': str(e)}), 500
+    finally:
+        conn.close()
 
 def delete_project(data):
     required_fields = ['project_id', 'creator_id']
@@ -327,7 +430,6 @@ def delete_project(data):
     finally:
         conn.close()
 
-
 def delete_task(data):
     required_fields = ['task_id', 'creator_id']
     if not all(field in data for field in required_fields):
@@ -357,6 +459,8 @@ def delete_task(data):
                      (task_id,))
         conn.execute('''DELETE FROM UserTask WHERE task_id = ?''',
                      (task_id,))
+        conn.execute('''DELETE FROM Sprint WHERE task_id = ?''',
+                     (task_id,))
         conn.commit()
 
         return jsonify({'message': 'Task deleted successfully'}), 201
@@ -366,6 +470,35 @@ def delete_task(data):
     finally:
         conn.close()
 
+def delete_sprint(data):
+    required_fields = ['round', 'project_id']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    round = data['round']
+    project_id = data['project_id']
+    owner_id = get_owner_id(project_id)
+    conn = get_db_connection()
+    try:
+        cursor = conn.execute('SELECT * FROM Sprint WHERE round = ? and project_id = ?',
+                              (round,project_id,))
+        task = cursor.fetchone()
+        if task is None:
+            return jsonify({'error': 'No such Sprint'}), 400
+
+        if owner_id != data['creator_id']:
+            return jsonify({'error': 'Owner ID mismatch'}), 400
+
+        conn.execute('''DELETE FROM Sprint WHERE  round = ? and project_id = ?''',
+                     (round,project_id,))
+        conn.commit()
+
+        return jsonify({'message': 'Sprint deleted successfully'}), 201
+    except Exception as e:
+        print(str(e))
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 
 def update_task(data):
     required_fields = ['task_id', 'creator_id']
@@ -484,7 +617,6 @@ def update_task(data):
     finally:
         conn.close()
 
-
 def update_project(data):
     required_fields = ['project_id', 'creator_id']
     if not all(field in data for field in required_fields):
@@ -524,6 +656,159 @@ def update_project(data):
         return jsonify({'error': str(e)}), 500
     finally:
         conn.close()
+
+def update_sprint(data):
+    required_fields = ['project_id', 'creator_id', 'round']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+    conn = get_db_connection()
+    project_id = data['project_id']
+    round = data['round']
+    try:
+        owner_id = get_owner_id(project_id)
+        if owner_id == -1:
+            return jsonify({'error': 'No such Project'}), 400
+
+        if owner_id != data['creator_id']:
+            return jsonify({'error': 'Owner ID mismatch'}), 400
+
+        cursor = conn.execute('SELECT * FROM Sprint WHERE round = ? and project_id = ?',
+                              (round, project_id,))
+        sprint = cursor.fetchone()
+        if sprint is None:
+            return jsonify({'error': 'No such Sprint'}), 400
+
+        if 'name' in data.keys():
+            conn.execute('''UPDATE Sprint
+                                   SET name = ?
+                                   WHERE round = ? and project_id = ?''',
+                         (data['name'], round, project_id,))
+        if 'new_round' in data.keys():
+            conn.execute('''UPDATE Sprint
+                                   SET round = ?
+                                   WHERE round = ? and project_id = ?''',
+                         (data['new_round'], round, project_id,))
+
+        if 'start_at' in data.keys():
+            conn.execute('''UPDATE Sprint
+                                   SET start_at = ?
+                                   WHERE round = ? and project_id = ?''',
+                         (data['start_at'], round, project_id,))
+        if 'due_date' in data.keys():
+            conn.execute('''UPDATE Sprint
+                                   SET due_date = ?
+                                   WHERE round = ? and project_id = ?''',
+                         (data['due_date'], round, project_id,))
+
+        conn.commit()
+        response = jsonify({'message': 'Project updated successfully'})
+
+        return response, 200
+    except Exception as e:
+        print(str(e))
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+
+@pro_bp.route('/edit_sprint_task', methods=['POST'])
+@jwt_required()
+def edit_sprint_task():
+    current_user = get_jwt_identity()['user_id']
+    if request.method == "POST":
+        data = request.get_json()
+        required_fields = ['project_id', 'round', 'type', 'tasks']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        project_id = data['project_id']
+        tasks = data['tasks']
+        round = data['round']
+        owner_id = get_owner_id(project_id)
+        if owner_id == -1:
+            return jsonify({'error': 'No such Project'}), 400
+
+        if owner_id != current_user:
+            return jsonify({'error': 'Owner ID mismatch'}), 400
+
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''SELECT task_id FROM ProjectTask WHERE project_id = ?''',
+                           (project_id,))
+            id = cursor.fetchall()
+            ids = [i[0] for i in id] # task id in project
+
+            cursor.execute(''' SELECT task_id
+                               FROM  Sprint
+                               WHERE project_id = ? and round = ?
+                           ''', (project_id,round,))
+            now_task_ids = cursor.fetchall()
+            now_task_ids = [n[0] for n in now_task_ids] # task id in sprint
+
+            if data['type'] == 'add':
+                common_elements = set(now_task_ids) & set(tasks)
+                if common_elements:
+                    return jsonify({'err': 'Task already exits.', 'Task ids:': list(common_elements)}), 400
+
+                cursor.execute(''' SELECT  name, start_at, due_date
+                                           FROM  Sprint
+                                           WHERE project_id = ? and round = ?
+                                       ''', (project_id, round,))
+                sprint = cursor.fetchone()
+
+
+                for task_id in tasks:
+                    conn.execute('''INSERT INTO Sprint (round, project_id, task_id, name, start_at, due_date) 
+                                    VALUES (?, ?, ?,?,?,?)''',
+                                 (round, project_id,task_id,sprint[0],sprint[1],sprint[2],))
+                conn.commit()
+                return jsonify({'msg': 'Added Sprint tasks Successfully'}), 200
+
+            elif data['type'] == 'remove':
+                different_elements = set(tasks).difference(set(now_task_ids))
+                if different_elements:
+                    return jsonify({'err': 'Tasks not exits in this sprint.', 'tasks:': list(different_elements)}), 400
+                for task_id in tasks:
+                    conn.execute('''DELETE FROM Sprint WHERE  round = ? and project_id = ? and task_id = ?''',
+                                 (round, project_id,task_id,))
+                conn.commit()
+                return jsonify({'msg': 'Removed sprint tasks Successfully'}), 200
+
+            else:
+                return jsonify({'err': 'No such opration'}), 400
+        except Exception as e:
+            print(str(e))
+        finally:
+            conn.close()
+
+
+@pro_bp.route('/sprint', methods=['POST', 'GET', 'DELETE', 'PUT'])
+@jwt_required()
+def sprint():
+    current_user = get_jwt_identity()
+    if request.method == "GET":
+        args = request.args
+        required_fields = ['project_id']
+        if not all(field in args for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+        return get_sprint(args)
+
+    elif request.method == "POST":
+        data = request.get_json()
+        data['creator_id'] = current_user['user_id']
+        response = register_sprint(data)
+        return response
+
+    elif request.method == "DELETE":
+        data = request.get_json()
+        data['creator_id'] = current_user['user_id']
+        return delete_sprint(data)
+
+    elif request.method == "PUT":
+        data = request.get_json()
+        data['creator_id'] = current_user['user_id']
+        return update_sprint(data)
 
 @pro_bp.route('/project_all', methods=['GET'])
 def project_all():
