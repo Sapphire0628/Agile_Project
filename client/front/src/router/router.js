@@ -5,6 +5,7 @@ import Home from '../views/Home.vue'
 import AddProject from '../views/AddProject.vue'
 import Project from '../views/Project.vue'
 import Team from '../views/Team.vue'
+import TaskDetail from '../views/TaskDetail.vue'
 
 const routes = [
   {
@@ -58,7 +59,14 @@ const routes = [
     meta: {
       requiresAuth: true  
     }
+  },
+  {
+    path: '/tasks/:id',
+    name: 'TaskDetail',
+    component: TaskDetail,
+    props: true
   }
+
 ]
 
 const router = createRouter({

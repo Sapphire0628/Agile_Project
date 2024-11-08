@@ -1,9 +1,10 @@
 import request from './request'
 
-export const getTasks = () => {
+export const getTasks = (params) => {
     return request({
-        url: '/pro/project_detail',
-        method: 'get'
+        url: `/pro/project_detail`,
+        method: 'get',
+        params
     })
 }
 

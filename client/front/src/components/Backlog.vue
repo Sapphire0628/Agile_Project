@@ -31,87 +31,100 @@
         </div>
       </div>
   
-      <v-table>
-        <thead>
-          <tr>
-            <th class="text-left" style="width: 100px">ID</th>
-            <th class="text-left">Task</th>
-            <th class="text-left" style="width: 150px">Status</th>
-            <th class="text-left" style="width: 150px">Points</th>
-            <th class="text-left" style="width: 50px">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <Draggable 
-            v-model="tasks" 
-            group="tasks"
-            item-key="id"
-            @end="onDragEnd"
-          >
-            <template #item="{ element: task }">
-              <tr :key="task.id" class="task-row">
-                <td>
-                  <router-link 
-                    :to="{ name: 'TaskDetail', params: { id: task.id }}"
-                    class="task-id"
-                  >
-                    #{{ task.id }}
-                  </router-link>
-                </td>
-                <td>{{ task.title }}</td>
-                <td>
-                  <v-select
-                    v-model="task.status"
-                    :items="statusOptions"
-                    density="compact"
-                    variant="outlined"
-                    hide-details
-                    @click.stop
-                    @update:model-value="updateTaskStatus(task.id, $event)"
-                  ></v-select>
-                </td>
-                <td>
-                  <v-select
-                    v-model="task.storyPoints"
-                    :items="storyPointOptions"
-                    density="compact"
-                    variant="outlined"
-                    hide-details
-                    @click.stop
-                    @update:model-value="updateTaskPoints(task.id, $event)"
-                  ></v-select>
-                </td>
-                <td>
-                  <v-menu>
-                    <template v-slot:activator="{ props }">
-                      <v-btn
-                        icon="mdi-dots-vertical"
-                        size="small"
-                        v-bind="props"
-                      ></v-btn>
-                    </template>
-                    <v-list>
-                      <v-list-item
-                        @click="openEditDialog(task)"
-                        prepend-icon="mdi-pencil"
-                      >
-                        编辑
-                      </v-list-item>
-                      <v-list-item
-                        @click="confirmDelete(task.id)"
-                        prepend-icon="mdi-delete"
-                        color="error"
-                      >
-                        删除
-                      </v-list-item>
-                    </v-list>
-                  </v-menu>
-                </td>
-              </tr>
-            </template>
-          </Draggable>
-        </tbody>
-      </v-table>
+      <v-container class="task-container">
+        <Draggable 
+          v-model="tasks" 
+          group="tasks"
+          item-key="task_id"
+          @end="onDragEnd"
+        >
+          <template #item="{ element: task, index }">
+            <v-card 
+              :key="task.task_id" 
+              class="task-card mb-4"
+              elevation="1"
+            >
+              <v-card-text>
+                <div class="d-flex justify-space-between align-center">
+                  <div class="task-name text-h6">
+                    <span class="task-id">#{{ index + 1 }}</span>
+                    {{ task.task_name }}
+                  </div>
+                  
+                  <div class="task-meta d-flex align-center">
+                    <v-menu
+                      v-model="task.showStatusMenu"
+                      :close-on-content-click="false"
+                      location="bottom"
+                      :offset="8"
+                      min-width="200"
+                    >
+                      <template v-slot:activator="{ props }">
+                        <v-chip
+                          size="small"
+                          class="mr-4"
+                          :color="getStatusColor(task.status)"
+                          v-bind="props"
+                          style="cursor: pointer"
+                        >
+                          {{ task.status || '设置状态' }}
+                        </v-chip>
+                      </template>
+                      <v-card>
+                        <v-list>
+                          <v-list-item
+                            v-for="status in statusOptions"
+                            :key="status"
+                            :title="status"
+                            @click="updateTaskStatus(task.task_id, status); task.showStatusMenu = false"
+                          >
+                          </v-list-item>
+                        </v-list>
+                      </v-card>
+                    </v-menu>
+                    <v-menu
+                      v-model="task.showPointsMenu"
+                      :close-on-content-click="false"
+                      location="bottom"
+                      :offset="8"
+                      min-width="300"
+                    >
+                      <template v-slot:activator="{ props }">
+                        <v-chip
+                          size="small"
+                          color="primary"
+                          v-bind="props"
+                          style="cursor: pointer"
+                        >
+                          {{ task.priority ? `${task.priority} points` : '设置分数' }}
+                        </v-chip>
+                      </template>
+                      <v-card>
+                        <div class="points-container">
+                          <div
+                            v-for="point in storyPointsWithDesc"
+                            :key="point.value"
+                            class="point-item"
+                            :class="{ 'selected': task.priority === point.value }"
+                            @click="updateTaskPoints(task.task_id, point.value); task.showPointsMenu = false"
+                          >
+                            <v-tooltip location="top">
+                              <template v-slot:activator="{ props }">
+                                <div v-bind="props">{{ point.value }}</div>
+                              </template>
+                              {{ point.description }}
+                            </v-tooltip>
+                          </div>
+                        </div>
+                      </v-card>
+                    </v-menu>
+                  </div>
+                </div>
+              </v-card-text>
+            </v-card>
+          </template>
+        </Draggable>
+      </v-container>
 
       <v-dialog v-model="editDialog" max-width="500px">
         <v-card>
@@ -141,9 +154,9 @@
           <v-card-text>
             <v-row>
               <v-col cols="8">
-                <v-form ref="form">
+                <v-form ref="form" @submit.prevent>
                   <v-text-field
-                    v-model="newTask.title"
+                    v-model="newTask.task_name"
                     label="Task name"
                     variant="outlined"
                     class="mb-4"
@@ -170,7 +183,7 @@
 
                 <div class="points-selector">
                   <v-text-field
-                    v-model="newTask.storyPoints"
+                    v-model="newTask.priority"
                     label="Story Points"
                     readonly
                     @click="showPointsMenu = !showPointsMenu"
@@ -184,7 +197,7 @@
                         v-for="point in storyPointsWithDesc"
                         :key="point.value"
                         class="point-item"
-                        :class="{ 'selected': newTask.storyPoints === point.value }"
+                        :class="{ 'selected': newTask.priority === point.value }"
                         @click="selectPoints(point.value)"
                       >
                         <v-tooltip location="top">
@@ -205,11 +218,10 @@
             <v-spacer></v-spacer>
             <v-btn
               color="primary"
-              @click="createTask"
               :loading="isLoading"
-            >
-              Create
-            </v-btn>
+              @click="createTask"
+              v-text="'Create'"
+            ></v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -217,16 +229,26 @@
   </template>
   
   <script>
-  import { ref, computed } from 'vue'
+  import { ref, onMounted, computed } from 'vue'
   import { useRouter } from 'vue-router'
   import Draggable from 'vuedraggable'
   import { getTasks, addTask } from '@/api/task'
+  import { useToast } from 'vue-toastification'
   
   export default {
     name: 'Backlog',
     components: {
       Draggable
     },
+    props: {
+    projectId: {
+      type: [Number, String],
+      required: true,
+      validator(value) {
+        return value !== undefined && value !== null
+      }
+    }
+  },
     
     directives: {
       clickOutside: {
@@ -244,7 +266,7 @@
       }
     },
     
-    setup() {
+    setup(props) {
       const router = useRouter()
       const search = ref('')
       const showNewTaskDialog = ref(false)
@@ -257,7 +279,8 @@
       const currentTask = ref(null)
       const isLoading = ref(false)
       const form = ref(null)
-  
+      const toast = useToast()
+
       const statusOptions = [
         'Not start',
         'Started',
@@ -270,7 +293,7 @@
   
       const filteredTasks = computed(() => {
         return tasks.value.filter(task =>
-          task.title.toLowerCase().includes(search.value.toLowerCase())
+          task.task_name.toLowerCase().includes(search.value.toLowerCase())
         )
       })
   
@@ -296,18 +319,20 @@
       }
   
       const newTask = ref({
-        title: '',
+        task_name: '',
         description: '',
         status: 'Not start',
-        storyPoints: null
+        priority: null,
+        project_id: props.projectId
       })
 
       const resetForm = () => {
         newTask.value = {
-          title: '',
+          task_name: '',
           description: '',
           status: 'Not start',
-          storyPoints: null
+          priority: null,
+          project_id: props.projectId
         }
         if (form.value) {
           form.value.resetValidation()
@@ -315,16 +340,22 @@
       }
   
       const createTask = async () => {
-        if (!form.value.validate()) return
-
+        if(!form.value){
+            toast.error('表单未初始化')
+            return
+        }
+        const { valid } = await form.value.validate()
+        if(!valid){
+            toast.error('请填写任务名')
+            return
+        }
         try {
           isLoading.value = true
-
-          // await createTaskAPI(newTask.value)
+          console.log(props)
           await addTask(newTask.value)
           showNewTaskDialog.value = false
           resetForm()
-
+          await fetchTasks()
         } catch (error) {
           console.error('Failed to create task:', error)
  
@@ -332,9 +363,18 @@
           isLoading.value = false
         }
       }
-  
+      const fetchTasks = async () => {
+        try{
+            const fetchtasks = await getTasks({'project_id':props.projectId})
+            tasks.value = fetchtasks.data.tasks
+            console.log(tasks.value)
+        } catch (error) {
+            console.error('Failed to fetch tasks:', error)
+            toast.error('Failed to fetch tasks')
+        }
+      }
       const selectPoints = (point) => {
-        newTask.value.storyPoints = point
+        newTask.value.priority = point
         showPointsMenu.value = false
       }
   
@@ -348,19 +388,19 @@
       }
 
       const storyPointsWithDesc = [
-        { value: 0, description: '无需估算的任务' },
-        { value: 1, description: '非常简单，2小时内可完成' },
-        { value: 2, description: '简单任务，半天内可完成' },
-        { value: 3, description: '中等任务，1天内可完成' },
-        { value: 5, description: '较复杂任务，需要2-3天' },
-        { value: 8, description: '复杂任务，需要3-5天' },
-        { value: 13, description: '较大型任务，需要1-2周' },
-        { value: 20, description: '大型任务，建议考虑拆分' },
-        { value: 40, description: '特大型任务，必须拆分' }
+        { value: 0, description: 'no priority' },
+        { value: 1, description: 'very easy' },
+        { value: 2, description: 'normal task' },
+        { value: 3, description: 'medium task' },
+        { value: 5, description: 'complex task' },
+        { value: 8, description: 'hard task' },
+        { value: 13, description: 'large task' },
+        { value: 20, description: 'huge task, consider splitting' },
+        { value: 40, description: 'massive task, must split' }
       ]
 
       const totalStoryPoints = computed(() => {
-        return tasks.value.reduce((sum, task) => sum + (Number(task.storyPoints) || 0), 0)
+        return tasks.value.reduce((sum, task) => sum + (Number(task.priority) || 0), 0)
       })
   
 
@@ -378,6 +418,53 @@
           tasks.value = tasks.value.filter(t => t.id !== taskId)
         }
       }
+
+      const getStatusColor = (status) => {
+        const colors = {
+          'Not start': 'grey',
+          'Started': 'blue',
+          'Testing': 'orange',
+          'Review': 'purple',
+          'Done': 'success'
+        }
+        return colors[status] || 'grey'
+      }
+
+      const updateTaskStatus = async (taskId, newStatus) => {
+        try {
+
+          await updateTask(taskId, { status: newStatus })
+
+          const task = tasks.value.find(t => t.task_id === taskId)
+          if (task) {
+            task.status = newStatus
+          }
+          toast.success('状态更新成功')
+        } catch (error) {
+          console.error('Failed to update task status:', error)
+          toast.error('状态更新失败')
+        }
+      }
+
+      const updateTaskPoints = async (taskId, newPoints) => {
+        try {
+
+          await updateTask(taskId, { priority: newPoints })
+
+          const task = tasks.value.find(t => t.task_id === taskId)
+          if (task) {
+            task.priority = newPoints
+          }
+          toast.success('分数更新成功')
+        } catch (error) {
+          console.error('Failed to update task points:', error)
+          toast.error('分数更新失败')
+        }
+      }
+
+      onMounted(()=>{
+        fetchTasks()
+      })
   
       return {
         search,
@@ -403,7 +490,9 @@
         closeModal,
         storyPointsWithDesc,
         totalStoryPoints,
-        moveTaskToSprint
+        moveTaskToSprint,
+        form,
+        getStatusColor,
       }
     }
   }
@@ -411,7 +500,7 @@
   
   <style scoped>
   .backlog {
-    padding: 16px;
+    padding: 24px;
   }
   
   .sprint-select {
@@ -441,22 +530,13 @@
     z-index: 1000;
   }
 
-  .points-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    z-index: 1001;
-  }
-
   .points-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 4px;
     padding: 8px;
+    position: relative;
+    z-index: 1100;
   }
 
   .point-item {
@@ -464,6 +544,11 @@
     text-align: center;
     cursor: pointer;
     border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    transition: all 0.3s ease;
   }
 
   .point-item:hover {
@@ -551,5 +636,41 @@
   .sprint-stats {
     font-size: 0.9em;
     color: rgba(0, 0, 0, 0.6);
+  }
+
+  .task-container {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .task-card {
+    border-radius: 8px;
+  }
+
+  .task-name {
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.87);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .task-id {
+    color: #666;
+    font-weight: 400;
+    font-size: 0.9em;
+  }
+
+  .task-meta {
+    gap: 16px; 
+  }
+
+  .task-actions {
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+  }
+
+  .task-card:hover .task-actions {
+    opacity: 1;
   }
   </style>

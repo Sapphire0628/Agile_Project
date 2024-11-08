@@ -42,7 +42,6 @@
         </v-list-item>
       </v-list>
   
-      <!-- 新建Sprint对话框 -->
       <v-dialog v-model="showNewSprintDialog" max-width="500px">
         <v-card>
           <v-card-title>New Sprint</v-card-title>
@@ -125,10 +124,8 @@
         if (!valid.value) return
         
         try {
-          // 调用API创建Sprint
           await createSprintAPI(newSprint.value)
           showNewSprintDialog.value = false
-          // 重置表单
           newSprint.value = {
             name: '',
             startDate: '',
@@ -136,7 +133,6 @@
             goal: ''
           }
           form.value?.reset()
-          // 刷新Sprint列表
           await fetchSprints()
         } catch (error) {
           console.error('Failed to create sprint:', error)

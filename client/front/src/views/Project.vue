@@ -5,12 +5,11 @@
     <v-main>
       <v-container fluid>
         <v-row>
-          <!-- 左侧Backlog -->
+
           <v-col cols="12" md="8">
-            <Backlog />
+            <Backlog :project-id="projectId" />
           </v-col>
-          
-          <!-- 右侧Sprint管理 -->
+
           <v-col cols="12" md="4">
             <SprintManagement />
           </v-col>
@@ -21,7 +20,8 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue'
+import { defineComponent, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import Header from '@/components/Header.vue'
 import SideBar from '@/components/SideBar.vue'
 import Backlog from '@/components/Backlog.vue'
@@ -34,6 +34,13 @@ export default defineComponent({
     SideBar,
     Backlog,
     SprintManagement
+  },
+  setup(){
+    const route = useRoute()
+    const projectId = ref(parseInt(route.params.id))
+    return {
+      projectId
+    }
   }
 })
 </script>
