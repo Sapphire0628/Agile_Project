@@ -4,9 +4,6 @@ import jwt
 import os
 import sqlite3
 
-from tornado.process import task_id
-from win32comext.shell.demos.servers.folder_view import tasks
-
 pro_bp = Blueprint('pro', __name__)
 
 
@@ -518,36 +515,19 @@ def update_task(data):
         project_id = cursor.fetchone()[0]
 
         owner_id = get_owner_id(project_id)
+        cursor = conn.execute('SELECT user_id FROM UserTask WHERE task_id = ?', (task_id,))
+        task_member_ids = cursor.fetchall()
+        task_member_ids = [t[0] for t in task_member_ids]
+        task_member_ids.append(owner_id)
 
-        if owner_id != data['creator_id']:
-            return jsonify({'error': 'Owner ID mismatch'}), 400
+        if data['creator_id'] not in task_member_ids:
+            return jsonify({'error': 'Current user can not update task information'}), 400
 
-        if 'task_name' in data.keys():
-            conn.execute('''UPDATE Tasks
-                            SET task_name = ?
-                            WHERE Tasks.task_id = ?''',
-                         (data['task_name'], task_id,))
-        if 'description' in data.keys():
-            conn.execute('''UPDATE Tasks
-                            SET description = ?
-                            WHERE Tasks.task_id = ?''',
-                         (data['description'], task_id,))
-        if 'status' in data.keys():
-            conn.execute('''UPDATE Tasks
-                            SET status = ?
-                            WHERE Tasks.task_id = ?''',
-                         (data['status'], task_id,))
-        if 'priority' in data.keys():
-            conn.execute('''UPDATE Tasks
-                            SET priority = ?
-                            WHERE Tasks.task_id = ?''',
-                         (data['priority'], task_id,))
-        if 'due_date' in data.keys():
-            conn.execute('''UPDATE Tasks
-                            SET due_date = ?
-                            WHERE Tasks.task_id = ?''',
-                         (data['due_date'], task_id,))
+
         if 'user' in data.keys():
+            if owner_id != data['creator_id']:
+                return jsonify({'error': 'Owner ID mismatch'}), 400
+
             cursor = conn.cursor()
             cursor.execute('''SELECT user_id FROM UserTask WHERE task_id = ?''',
                                   (task_id,))
@@ -608,6 +588,32 @@ def update_task(data):
                                  (user_id, task_id,))
             else:
                 return jsonify({'err': 'No such update task opration'}), 400
+
+        if 'task_name' in data.keys():
+            conn.execute('''UPDATE Tasks
+                                   SET task_name = ?
+                                   WHERE Tasks.task_id = ?''',
+                         (data['task_name'], task_id,))
+        if 'description' in data.keys():
+            conn.execute('''UPDATE Tasks
+                                   SET description = ?
+                                   WHERE Tasks.task_id = ?''',
+                         (data['description'], task_id,))
+        if 'status' in data.keys():
+            conn.execute('''UPDATE Tasks
+                                   SET status = ?
+                                   WHERE Tasks.task_id = ?''',
+                         (data['status'], task_id,))
+        if 'priority' in data.keys():
+            conn.execute('''UPDATE Tasks
+                                   SET priority = ?
+                                   WHERE Tasks.task_id = ?''',
+                         (data['priority'], task_id,))
+        if 'due_date' in data.keys():
+            conn.execute('''UPDATE Tasks
+                                   SET due_date = ?
+                                   WHERE Tasks.task_id = ?''',
+                         (data['due_date'], task_id,))
 
         conn.commit()
         return jsonify({'message': 'Task updated successfully'}), 201
@@ -934,7 +940,6 @@ def edit_project_member():
                                                     and pt.project_id = ?
                                                     and pt.task_id = ut.task_id);''',
                                  (user_id, user_id, project_id,))
-                    # TODO
                 conn.commit()
                 return jsonify({'msg': 'Removed project members Successfully'}), 200
             else:
