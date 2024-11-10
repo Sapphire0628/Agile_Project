@@ -172,8 +172,11 @@ def get_project_detail(data):
             members = [{'username': m[0]} for m in members]
 
             cursor = conn.execute(
-                'SELECT t.task_id, task_name, description, status, priority, due_date, created_at  FROM Tasks t,ProjectTask pt WHERE t.task_id = pt.task_id and pt.project_id = ?',
-                (project_id,))
+                '''SELECT t.task_id, t.task_name, t.description, t.status, t.priority, t.due_date, t.created_at
+                   FROM Tasks t, ProjectTask pt
+                   WHERE t.task_id = pt.task_id and pt.project_id = ?
+                   and t.task_id not in (select distinct task_id from Sprint where project_id = ? and task_id is not null)''',
+                (project_id,project_id,))
             tasks = cursor.fetchall()
             tasks = [{'task_id': t[0], 'task_name': t[1], 'description': t[2], 'status': t[3], 'priority': t[4], 'due_date': t[5], 'created_at': t[6]} for t in tasks]
 
