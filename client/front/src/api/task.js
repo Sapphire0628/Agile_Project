@@ -16,3 +16,20 @@ export const addTask = (data) => {
     })
 }
 
+export const updateTask = (data) => {
+    return request({
+        url: '/pro/project_detail',
+        method: 'put',
+        data
+    })
+}
+
+export const deleteTask = (data) => {
+    return request({
+        url: '/pro/project_detail',
+        method: 'delete',
+        data
+    })
+}
+
+

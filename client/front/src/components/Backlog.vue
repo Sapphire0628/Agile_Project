@@ -33,7 +33,7 @@
   
       <v-container class="task-container">
         <Draggable 
-          v-model="tasks" 
+          v-model="filteredTasks" 
           group="tasks"
           item-key="task_id"
           @end="onDragEnd"
@@ -67,7 +67,7 @@
                           v-bind="props"
                           style="cursor: pointer"
                         >
-                          {{ task.status || '设置状态' }}
+                          {{ task.status}}
                         </v-chip>
                       </template>
                       <v-card>
@@ -96,7 +96,7 @@
                           v-bind="props"
                           style="cursor: pointer"
                         >
-                          {{ task.priority ? `${task.priority} points` : '设置分数' }}
+                          {{ task.priority ? `${task.priority} points` : '0 points' }}
                         </v-chip>
                       </template>
                       <v-card>
@@ -118,6 +118,24 @@
                         </div>
                       </v-card>
                     </v-menu>
+                    <v-menu location="bottom end">
+                      <template v-slot:activator="{ props }">
+                        <v-btn
+                          icon="mdi-dots-vertical"
+                          size="small"
+                          variant="text"
+                          v-bind="props"
+                      ></v-btn>
+                    </template>
+                    <v-list>
+                      <v-list-item
+                        @click="handleDeleteTask(task.task_id)"
+                        prepend-icon="mdi-delete"
+                        title="删除"
+                            color="error"
+                          ></v-list-item>
+                        </v-list>
+                      </v-menu>
                   </div>
                 </div>
               </v-card-text>
@@ -125,19 +143,6 @@
           </template>
         </Draggable>
       </v-container>
-
-      <v-dialog v-model="editDialog" max-width="500px">
-        <v-card>
-
-        </v-card>
-      </v-dialog>
-
-
-      <v-dialog v-model="deleteDialog" max-width="400px">
-        <v-card>
-
-        </v-card>
-      </v-dialog>
 
       <v-dialog v-model="showNewTaskDialog" max-width="800px">
         <v-card>
@@ -232,7 +237,7 @@
   import { ref, onMounted, computed } from 'vue'
   import { useRouter } from 'vue-router'
   import Draggable from 'vuedraggable'
-  import { getTasks, addTask } from '@/api/task'
+  import { getTasks, addTask, updateTask, deleteTask } from '@/api/task'
   import { useToast } from 'vue-toastification'
   
   export default {
@@ -290,12 +295,6 @@
       ]
   
       const storyPointOptions = [ 0,  1, 2, 3, 5, 8, 10, 13, 20, 40]
-  
-      const filteredTasks = computed(() => {
-        return tasks.value.filter(task =>
-          task.task_name.toLowerCase().includes(search.value.toLowerCase())
-        )
-      })
   
       const onDragEnd = (evt) => {
         const { from, to } = evt
@@ -430,10 +429,20 @@
         return colors[status] || 'grey'
       }
 
+      const filteredTasks = computed(() => {
+        if(!search.value){
+          return tasks.value
+        }
+        return tasks.value.filter(task =>
+          task.task_name.toLowerCase().includes(search.value.toLowerCase()) ||
+          String(task.task_id).includes(search.value.toLowerCase())
+        )
+      })
+
       const updateTaskStatus = async (taskId, newStatus) => {
         try {
 
-          await updateTask(taskId, { status: newStatus })
+          await updateTask({task_id:taskId, status: newStatus })
 
           const task = tasks.value.find(t => t.task_id === taskId)
           if (task) {
@@ -449,7 +458,7 @@
       const updateTaskPoints = async (taskId, newPoints) => {
         try {
 
-          await updateTask(taskId, { priority: newPoints })
+          await updateTask({task_id:taskId, priority: newPoints })
 
           const task = tasks.value.find(t => t.task_id === taskId)
           if (task) {
@@ -459,6 +468,17 @@
         } catch (error) {
           console.error('Failed to update task points:', error)
           toast.error('分数更新失败')
+        }
+      }
+
+      const handleDeleteTask = async (taskId) => {
+        try {
+          await deleteTask({task_id:taskId})
+          await fetchTasks()
+          toast.success('任务删除成功')
+        } catch (error) {
+          console.error('Failed to delete task:', error)
+          toast.error('任务删除失败')
         }
       }
 
@@ -491,6 +511,9 @@
         storyPointsWithDesc,
         totalStoryPoints,
         moveTaskToSprint,
+        updateTaskStatus,
+        updateTaskPoints,
+        handleDeleteTask,
         form,
         getStatusColor,
       }
@@ -662,7 +685,9 @@
   }
 
   .task-meta {
-    gap: 16px; 
+    display: flex;
+    align-items: center;
+    gap: 8px; 
   }
 
   .task-actions {
@@ -672,5 +697,9 @@
 
   .task-card:hover .task-actions {
     opacity: 1;
+  }
+
+  .v-list-item {
+    min-height: 40px;
   }
   </style>

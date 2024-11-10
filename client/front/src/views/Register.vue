@@ -65,7 +65,7 @@ data:() => ({
 methods: {
   register() {
     if (this.$refs.form.validate()) {
-        this.$axios.post('https://8a74705f-88cc-40ba-af38-3379f495a983-00-1npdqf5pljqau.pike.replit.dev/auth/register', {
+        this.$axios.post('https://b06d2e0d-a156-474f-adfa-a53fade93306-00-392iabnynab1k.pike.replit.dev/auth/register', {
           username: this.username,
           email: this.email,
           password: this.password,
