@@ -15,3 +15,11 @@ export const createSprint = (data) => {
         data
     })
 }
+
+export const updateSprintTask = (data) => {
+    return request({
+        url: '/pro/edit_sprint_task',
+        method: 'post',
+        data
+    })
+}

@@ -37,12 +37,14 @@
           group="tasks"
           item-key="task_id"
           @end="onDragEnd"
+          :sort="false"
         >
           <template #item="{ element: task, index }">
             <v-card 
               :key="task.task_id" 
               class="task-card mb-4"
               elevation="1"
+              :data-task-id="task.task_id"
             >
               <v-card-text>
                 <div class="d-flex justify-space-between align-center">
@@ -238,6 +240,7 @@
   import { useRouter } from 'vue-router'
   import Draggable from 'vuedraggable'
   import { getTasks, addTask, updateTask, deleteTask } from '@/api/task'
+  import { updateSprintTask } from '@/api/sprint'
   import { useToast } from 'vue-toastification'
   
   export default {
@@ -270,7 +273,7 @@
         }
       }
     },
-    
+    expose: ['fetchTasks'],
     setup(props) {
       const router = useRouter()
       const search = ref('')
@@ -296,14 +299,23 @@
   
       const storyPointOptions = [ 0,  1, 2, 3, 5, 8, 10, 13, 20, 40]
   
-      const onDragEnd = (evt) => {
+      const onDragEnd = async (evt) => {
         const { from, to } = evt
         if (from === to) return 
-        
-        if (to.dataset.sprintId) {
-          const taskId = evt.item.dataset.taskId
-          const sprintId = to.dataset.sprintId
-          moveTaskToSprint(taskId, sprintId)
+
+        const taskId = evt.item.dataset.taskId
+        const sprintId = to?.dataset?.sprintId
+        const ifFromBacklog = from.classList.contains('task-container')
+        if(taskId && sprintId && !ifFromBacklog){
+          try{
+            await updateSprintTask({tasks:[taskId], round:sprintId, type:'add', project_id:props.projectId})
+            await fetchTasks()
+            toast.success('任务移动成功')
+          } catch (error) {
+            console.error('Failed to update task sprint:', error)
+            toast.error('任务移动失败')
+            await fetchTasks()
+          }
         }
       }
   
@@ -365,11 +377,12 @@
       const fetchTasks = async () => {
         try{
             const fetchtasks = await getTasks({'project_id':props.projectId})
-            tasks.value = fetchtasks.data.tasks
+            tasks.value = fetchtasks.data.tasks || []
             console.log(tasks.value)
         } catch (error) {
             console.error('Failed to fetch tasks:', error)
             toast.error('Failed to fetch tasks')
+            tasks.value = []
         }
       }
       const selectPoints = (point) => {
@@ -485,7 +498,7 @@
       onMounted(()=>{
         fetchTasks()
       })
-  
+
       return {
         search,
         showNewTaskDialog,
@@ -516,9 +529,11 @@
         handleDeleteTask,
         form,
         getStatusColor,
+        fetchTasks
       }
     }
   }
+
   </script>
   
   <style scoped>

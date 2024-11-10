@@ -7,11 +7,13 @@
         <v-row>
 
           <v-col cols="12" md="8">
-            <Backlog :project-id="projectId" />
+            <Backlog 
+            ref="backlog"
+            :project-id="projectId" />
           </v-col>
 
           <v-col cols="12" md="4">
-            <SprintManagement :project-id="projectId" />
+            <SprintManagement :project-id="projectId" @task-removed-from-sprint="RemoveFromSprint" />
           </v-col>
         </v-row>
       </v-container>
@@ -37,9 +39,19 @@ export default defineComponent({
   },
   setup(){
     const route = useRoute()
+    const backlog = ref(null)
+    const RemoveFromSprint = async () => {
+      if (backlog.value && typeof backlog.value.fetchTasks === 'function') {
+        await backlog.value.fetchTasks()
+      } else {
+        console.error('Backlog reference or fetchTasks method not available')
+      }
+    }
     const projectId = ref(parseInt(route.params.id))
     return {
-      projectId
+      projectId,
+      RemoveFromSprint,
+      backlog
     }
   }
 })
