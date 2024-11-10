@@ -28,6 +28,17 @@ CREATE TABLE IF NOT EXISTS Tasks (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Sprint table
+CREATE TABLE IF NOT EXISTS Sprint (
+    round INTEGER NOT NULL,
+    name VARCHAR(255),
+    task_id INTEGER,
+    project_id INTEGER  NOT NULL ,
+    start_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    due_date DATETIME,
+    PRIMARY KEY (round, project_id,task_id)
+);
+
 -- UserProject junction table
 CREATE TABLE IF NOT EXISTS UserProject (
     user_id INTEGER NOT NULL,
