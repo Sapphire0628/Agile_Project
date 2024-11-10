@@ -72,13 +72,21 @@ def get_sprint(args):
                 test[round]['name'] = name
 
                 if 'tasks' not in test[round].keys():
-                    test[round]['tasks'] = []
+                    test[round]['total_tasks'] = []
+                    test[round]['completed_task'] = []
+
                 if task_id is None:
                     continue
                 cursor = conn.execute(
-                    '''SELECT task_name FROM Tasks WHERE task_id = ?''', (task_id,))
-                taskname = cursor.fetchone()[0]
-                test[round]['tasks'].append(taskname)
+                    '''SELECT task_name, status FROM Tasks WHERE task_id = ?''', (task_id,))
+                task = cursor.fetchone()
+                taskname = task[0]
+                status = task[1]
+                test[round]['total_tasks'].append({'name':taskname,
+                                                   'id':task_id})
+                if status == 'Done':
+                    test[round]['completed_task'].append({'name':taskname,
+                                                   'id':task_id})
 
             return jsonify(test), 200
         else:
@@ -739,32 +747,26 @@ def edit_sprint_task():
 
         if owner_id != current_user:
             return jsonify({'error': 'Owner ID mismatch'}), 400
-
         conn = get_db_connection()
         try:
             cursor = conn.cursor()
+            cursor.execute('''SELECT name, start_at, due_date From Sprint WHERE project_id = ? and round = ?''', (project_id, round,))
+            sprint = cursor.fetchone()
+            if not sprint:
+                return jsonify({'error': 'No such Sprint'}), 400
+
             cursor.execute('''SELECT task_id FROM ProjectTask WHERE project_id = ?''',
                            (project_id,))
             id = cursor.fetchall()
             ids = [i[0] for i in id] # task id in project
 
-            cursor.execute(''' SELECT task_id
-                               FROM  Sprint
-                               WHERE project_id = ? and round = ?
-                           ''', (project_id,round,))
-            now_task_ids = cursor.fetchall()
-            now_task_ids = [n[0] for n in now_task_ids] # task id in sprint
-
             if data['type'] == 'add':
+                cursor.execute(''' SELECT task_id FROM  Sprint WHERE project_id = ?''', (project_id,))
+                now_task_ids = cursor.fetchall()
+                now_task_ids = [n[0] for n in now_task_ids]  # task id in sprint/ any sprint
                 common_elements = set(now_task_ids) & set(tasks)
                 if common_elements:
                     return jsonify({'err': 'Task already exits.', 'Task ids:': list(common_elements)}), 400
-
-                cursor.execute(''' SELECT  name, start_at, due_date
-                                           FROM  Sprint
-                                           WHERE project_id = ? and round = ?
-                                       ''', (project_id, round,))
-                sprint = cursor.fetchone()
 
 
                 for task_id in tasks:
@@ -775,6 +777,13 @@ def edit_sprint_task():
                 return jsonify({'msg': 'Added Sprint tasks Successfully'}), 200
 
             elif data['type'] == 'remove':
+                cursor.execute(''' SELECT task_id
+                                               FROM  Sprint
+                                               WHERE project_id = ? and round = ?
+                                           ''', (project_id,round,))
+                now_task_ids = cursor.fetchall()
+                now_task_ids = [n[0] for n in now_task_ids]  # task id in sprint/ any sprint
+
                 different_elements = set(tasks).difference(set(now_task_ids))
                 if different_elements:
                     return jsonify({'err': 'Tasks not exits in this sprint.', 'tasks:': list(different_elements)}), 400
@@ -787,7 +796,7 @@ def edit_sprint_task():
             else:
                 return jsonify({'err': 'No such opration'}), 400
         except Exception as e:
-            print(str(e))
+            return jsonify(str(e))
         finally:
             conn.close()
 
