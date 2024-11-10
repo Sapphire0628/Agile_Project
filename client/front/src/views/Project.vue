@@ -11,7 +11,7 @@
           </v-col>
 
           <v-col cols="12" md="4">
-            <SprintManagement />
+            <SprintManagement :project-id="projectId" />
           </v-col>
         </v-row>
       </v-container>
