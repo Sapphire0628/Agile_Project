@@ -71,22 +71,25 @@ def get_sprint(args):
                 test[round]['due_date'] = due_date
                 test[round]['name'] = name
 
-                if 'tasks' not in test[round].keys():
+                if 'total_tasks' not in test[round].keys():
                     test[round]['total_tasks'] = []
                     test[round]['completed_task'] = []
 
                 if task_id is None:
                     continue
+
                 cursor = conn.execute(
                     '''SELECT task_name, status FROM Tasks WHERE task_id = ?''', (task_id,))
                 task = cursor.fetchone()
                 taskname = task[0]
                 status = task[1]
                 test[round]['total_tasks'].append({'name':taskname,
-                                                   'id':task_id})
+                                                   'id':task_id,
+                                                   'status': status})
                 if status == 'Done':
                     test[round]['completed_task'].append({'name':taskname,
-                                                   'id':task_id})
+                                                   'id':task_id,
+                                                   'status': status})
 
             return jsonify(test), 200
         else:
@@ -739,7 +742,7 @@ def edit_sprint_task():
             return jsonify({'error': 'Missing required fields'}), 400
 
         project_id = data['project_id']
-        tasks = data['tasks']
+        tasks = [int(t) for t in data['tasks']]
         round = data['round']
         owner_id = get_owner_id(project_id)
         if owner_id == -1:
