@@ -83,13 +83,89 @@ def get_sprint(args):
                 task = cursor.fetchone()
                 taskname = task[0]
                 status = task[1]
+
+                cursor = conn.execute(
+                    '''SELECT username FROM Users u, UserTask ut 
+                        WHERE ut.task_id = ? and u.user_id = ut.user_id''', (task_id,))
+                members = cursor.fetchall()
+                members = [m[0] for m in members]
+
+
                 test[round]['total_tasks'].append({'name':taskname,
                                                    'id':task_id,
-                                                   'status': status})
+                                                   'status': status,
+                                                   'members':members})
                 if status == 'Done':
                     test[round]['completed_task'].append({'name':taskname,
                                                    'id':task_id,
-                                                   'status': status})
+                                                   'status': status,
+                                                   'members':members})
+
+            return jsonify(test), 200
+        else:
+            return jsonify({'error': 'Invalid Project id'}), 401
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+def get_one_sprint(args):
+    project_id = args['project_id']
+    round = args['round']
+
+    conn = get_db_connection()
+    try:
+        # get sprint detail
+        cursor = conn.execute('SELECT * FROM Projects WHERE project_id = ?', (project_id,))
+        pro = cursor.fetchone()
+
+        if pro:
+            cursor = conn.cursor()
+            cursor.execute(''' SELECT task_id, start_at, due_date, name FROM  Sprint WHERE  project_id = ? and round = ?
+                                       ''', (project_id,round,))
+            tasks = cursor.fetchall()
+            if tasks is None:
+                return jsonify({'error': 'No such sprint round in project.'}), 401
+            test = {}
+            for t in tasks:
+                task_id = t[0]
+                start_at = t[1]
+                due_date = t[2]
+                name = t[3]
+                test['round'] = round
+                test['start_at'] = start_at
+                test['due_date'] = due_date
+                test['name'] = name
+
+                if 'total_tasks' not in test.keys():
+                    test['total_tasks'] = []
+                    test['completed_task'] = []
+
+                if task_id is None:
+                    continue
+
+                cursor = conn.execute(
+                    '''SELECT task_name, status FROM Tasks WHERE task_id = ?''', (task_id,))
+                task = cursor.fetchone()
+                taskname = task[0]
+                status = task[1]
+
+                cursor = conn.execute(
+                    '''SELECT username FROM Users u, UserTask ut 
+                        WHERE ut.task_id = ? and u.user_id = ut.user_id''', (task_id,))
+                members = cursor.fetchall()
+                members = [m[0] for m in members]
+
+
+                test['total_tasks'].append({'name':taskname,
+                                                   'id':task_id,
+                                                   'status': status,
+                                                   'members':members})
+                if status == 'Done':
+                    test['completed_task'].append({'name':taskname,
+                                                   'id':task_id,
+                                                   'status': status,
+                                                   'members':members})
 
             return jsonify(test), 200
         else:
@@ -813,7 +889,10 @@ def sprint():
         required_fields = ['project_id']
         if not all(field in args for field in required_fields):
             return jsonify({'error': 'Missing required fields'}), 400
-        return get_sprint(args)
+        if 'round' in args:
+            return get_one_sprint(args)
+        else:
+            return get_sprint(args)
 
     elif request.method == "POST":
         data = request.get_json()
