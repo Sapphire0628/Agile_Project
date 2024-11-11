@@ -39,7 +39,7 @@
           @end="onDragEnd"
           :sort="false"
         >
-          <template #item="{ element: task, index }">
+          <template #item="{ element: task }">
             <v-card 
               :key="task.task_id" 
               class="task-card mb-4"
@@ -49,7 +49,7 @@
               <v-card-text>
                 <div class="d-flex justify-space-between align-center">
                   <div class="task-name text-h6">
-                    <span class="task-id">#{{ index + 1 }}</span>
+                    <span class="task-id">#{{ task.task_id }}</span>
                     {{ task.task_name }}
                   </div>
                   
@@ -281,7 +281,6 @@
       const showPointsMenu = ref(false)
       const tasks = ref([])
       const teamMembers = ref([])
-      const sprints = ref([])
       const editDialog = ref(false)
       const deleteDialog = ref(false)
       const currentTask = ref(null)
@@ -416,20 +415,6 @@
       })
   
 
-  
-
-      const moveTaskToSprint = (taskId, sprintId) => {
-        const task = tasks.value.find(t => t.id === taskId)
-        const sprint = sprints.value.find(s => s.id === sprintId)
-        
-        if (task && sprint) {
-
-          // await updateTaskSprint(taskId, sprintId)
-          
-          sprint.tasks.push(task)
-          tasks.value = tasks.value.filter(t => t.id !== taskId)
-        }
-      }
 
       const getStatusColor = (status) => {
         const colors = {
@@ -505,7 +490,7 @@
         showPointsMenu,
         tasks,
         teamMembers,
-        sprints,
+
         statusOptions,
         storyPointOptions,
         filteredTasks,
@@ -523,7 +508,6 @@
         closeModal,
         storyPointsWithDesc,
         totalStoryPoints,
-        moveTaskToSprint,
         updateTaskStatus,
         updateTaskPoints,
         handleDeleteTask,

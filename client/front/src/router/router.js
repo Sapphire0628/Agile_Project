@@ -6,6 +6,7 @@ import AddProject from '../views/AddProject.vue'
 import Project from '../views/Project.vue'
 import Team from '../views/Team.vue'
 import TaskDetail from '../views/TaskDetail.vue'
+import SprintDashboard from '../views/SprintDashboard.vue'
 
 const routes = [
   {
@@ -65,6 +66,14 @@ const routes = [
     name: 'TaskDetail',
     component: TaskDetail,
     props: true
+  },
+  {
+    path: '/project/:id/:sprintName/:sprintId',
+    name: 'SprintDashboard',
+    component: SprintDashboard,
+    meta: {
+      requiresAuth: true
+    }
   }
 
 ]
