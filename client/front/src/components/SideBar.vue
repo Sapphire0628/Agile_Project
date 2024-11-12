@@ -45,7 +45,10 @@ import { ref,computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getSprints } from '@/api/sprint'
 
+
 export default {
+  expose: ['fetchSprints'],
+
   setup() {
     const route = useRoute()
     const router = useRouter()

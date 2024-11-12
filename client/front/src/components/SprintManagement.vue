@@ -133,7 +133,7 @@
     components: {
       Draggable
     },
-    emits: ['task-removed-from-sprint'],
+    emits: ['task-removed-from-sprint','sprint-created'],
     props: {
     projectId: {
       type: [Number, String],
@@ -220,6 +220,7 @@
           form.value?.reset()
           await fetchSprints()
           toast.success('创建sprint成功')
+          emit('sprint-created')
         } catch (error) {
           toast.error('创建sprint失败')
           console.error('Failed to create sprint:', error)

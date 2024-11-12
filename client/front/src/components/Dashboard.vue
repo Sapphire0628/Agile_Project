@@ -82,11 +82,12 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch} from 'vue'
 import Draggable from 'vuedraggable'
 import { useToast } from 'vue-toastification'
 import { updateTask } from '@/api/task'
 import { getSprints } from '@/api/sprint'
+import { useRoute } from 'vue-router'
 
 export default {
   name: 'Dashboard',
@@ -108,6 +109,7 @@ export default {
     }
   },
   setup(props) {
+    const route = useRoute()
     const toast = useToast()
     const taskStatuses = ['Not start', 'Started', 'Testing', 'Review', 'Done']
     const tasksByStatus = ref({})
@@ -186,6 +188,16 @@ export default {
         await fetchTasks()
       }
     }
+
+    watch(
+      () => route.params.sprintId,
+      (newSprintId) => {
+        if (newSprintId) {
+          fetchTasks()
+        }
+      },
+      { immediate: true }
+    )
 
     onMounted(() => {
       fetchTasks()
