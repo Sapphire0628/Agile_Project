@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS Sprint (
 CREATE TABLE IF NOT EXISTS UserProject (
     user_id INTEGER NOT NULL,
     project_id INTEGER NOT NULL,
+    role TEXT CHECK(role IN ('Programmer', 'Tester', 'UI Designer', 'DevOps engineer')) DEFAULT 'Programmer',
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (project_id) REFERENCES Projects(project_id) ON DELETE CASCADE,
     PRIMARY KEY (user_id, project_id)

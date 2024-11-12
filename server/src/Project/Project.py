@@ -42,6 +42,28 @@ def ids_to_names(ids):
     conn.close()
     return users
 
+def get_comments(args):
+    task_id = args['task_id']
+    conn = get_db_connection()
+    try:
+        cursor = conn.execute('SELECT * FROM Tasks WHERE task_id = ?', (task_id,))
+        pro = cursor.fetchone()
+        if pro:
+            cursor = conn.cursor()
+            cursor.execute(''' SELECT u.username, c.comment, c.created_at, c.comment_id
+                                FROM  Comments c, Users u
+                                WHERE  task_id = ? and c.user_id = u.user_id
+                                       ''', (task_id,))
+            comments = cursor.fetchall()
+            comments = [{'username:':c[0], 'comment': c[1], 'created_at': c[2], 'comment_id': c[3]} for c in comments]
+            return jsonify(comments), 200
+        else:
+            return jsonify({'error': 'Invalid Task id'}), 401
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
 def get_sprint(args):
     project_id = args['project_id']
 
@@ -145,10 +167,11 @@ def get_one_sprint(args):
                     continue
 
                 cursor = conn.execute(
-                    '''SELECT task_name, status FROM Tasks WHERE task_id = ?''', (task_id,))
+                    '''SELECT task_name, status, priority FROM Tasks WHERE task_id = ?''', (task_id,))
                 task = cursor.fetchone()
                 taskname = task[0]
                 status = task[1]
+                priority = task[2]
 
                 cursor = conn.execute(
                     '''SELECT username FROM Users u, UserTask ut 
@@ -160,12 +183,14 @@ def get_one_sprint(args):
                 test['total_tasks'].append({'name':taskname,
                                                    'id':task_id,
                                                    'status': status,
-                                                   'members':members})
+                                                   'members':members,
+                                                    'priority':priority})
                 if status == 'Done':
                     test['completed_task'].append({'name':taskname,
                                                    'id':task_id,
                                                    'status': status,
-                                                   'members':members})
+                                                   'members':members,
+                                                    'priority':priority})
 
             return jsonify(test), 200
         else:
@@ -378,6 +403,50 @@ def register_task(data):
     finally:
         conn.close()
 
+def register_comment(data):
+    required_fields = ['task_id']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    conn = get_db_connection()
+    task_id = data['task_id']
+    try:
+        cursor = conn.cursor()
+        cursor.execute(''' SELECT task_id FROM  Tasks WHERE task_id = ?''', (data['task_id'],))
+        task = cursor.fetchone()
+        if task is None:
+            return jsonify({'error': 'No such task'}), 400
+
+        cursor = conn.execute('SELECT user_id FROM UserProject up, ProjectTask pt WHERE pt.task_id = ? and up.project_id = pt.project_id', (task_id,))
+        pro_member_ids = cursor.fetchall()
+        pro_member_ids = [t[0] for t in pro_member_ids]
+        cursor.execute(
+            ''' SELECT pt.project_id FROM ProjectTask pt where  pt.task_id = ?''',
+            (task_id,))
+        project = cursor.fetchone()
+        owner_id = get_owner_id(project[0])
+        pro_member_ids.append(owner_id)
+
+        if data['user_id'] not in pro_member_ids:
+            return jsonify({'error': 'Current user can not create comment on this task.'}), 400
+
+        if 'comment' not in data.keys():
+            comment = ""
+        else:
+            comment = data['comment']
+
+        conn.execute('''INSERT INTO Comments (user_id, task_id, comment)
+                                    VALUES (?, ?, ?)''',
+                     (data['user_id'], data['task_id'],comment,))
+        conn.commit()
+        response = jsonify({'message': 'Comment registered successfully'})
+        return response, 200
+
+    except Exception as e:
+        print(str(e))
+        return jsonify({'Error': str(e)}), 500
+    finally:
+        conn.close()
 
 def register_project(data):
     # Validate required fields, description is optional
@@ -440,8 +509,6 @@ def register_sprint(data):
             data['round'] = 0
         if 'due_date' not in data.keys():
             data['due_date'] = None
-        # if 'start_at' not in data.keys():
-        #     data['start_at'] = None
 
         if 'tasks' not in data.keys():
             conn.execute('''
@@ -472,6 +539,41 @@ def register_sprint(data):
     except Exception as e:
         print(str(e))
         return jsonify({'Error': str(e)}), 500
+    finally:
+        conn.close()
+
+def delete_comment(data):
+    required_fields = ['comment_id']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+    comment_id = data['comment_id']
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(''' SELECT pt.project_id, c.user_id FROM Comments c, ProjectTask pt where c.comment_id = ? and c.task_id = pt.task_id''',(comment_id,))
+        project = cursor.fetchone()
+        if project is None:
+            return jsonify({'error': 'No such comment.'}), 400
+        project_id = project[0]
+        user_id = project[1]
+
+        owner_id = get_owner_id(project_id)
+        if owner_id == -1:
+            return jsonify({'error': 'No such project'}), 400
+
+        if owner_id != data['creator_id'] and data['creator_id'] != user_id:
+            return jsonify({'error': 'Current user can not update this comment.'}), 400
+
+        conn.execute('''DELETE FROM Comments WHERE comment_id = ?''',
+                     (comment_id,))
+
+        conn.commit()
+
+        response=  jsonify({'message': 'Comment deleted successfully'})
+
+        return response, 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     finally:
         conn.close()
 
@@ -806,6 +908,68 @@ def update_sprint(data):
     finally:
         conn.close()
 
+def update_comment(data):
+    required_fields = ['comment_id', 'comment']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+    comment_id = data['comment_id']
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            ''' SELECT pt.project_id, c.user_id FROM Comments c, ProjectTask pt where c.comment_id = ? and c.task_id = pt.task_id''',
+            (comment_id,))
+
+        project = cursor.fetchone()
+        if project is None:
+            return jsonify({'error': 'No such comment.'}), 400
+        project_id = project[0]
+        user_id = project[1]
+
+        owner_id = get_owner_id(project_id)
+        if owner_id == -1:
+            return jsonify({'error': 'No such project'}), 400
+
+        if owner_id != data['creator_id'] and data['creator_id'] != user_id:
+            return jsonify({'error': 'Current user can not update this comment.'}), 400
+
+        conn.execute('''UPDATE Comments SET comment = ? WHERE comment_id = ?''',
+                            (data['comment'], comment_id,))
+        conn.commit()
+        response = jsonify({'message': 'Comment updated successfully'})
+        return response, 200
+    except Exception as e:
+        print(str(e))
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@pro_bp.route('/comment', methods=['POST', 'GET', 'DELETE', 'PUT'])
+@jwt_required()
+def comment():
+    current_user = get_jwt_identity()
+    if request.method == "GET":
+        args = request.args
+        required_fields = ['task_id']
+        if not all(field in args for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+        return get_comments(args)
+
+    elif request.method == "POST":
+        data = request.get_json()
+        data['user_id'] = current_user['user_id']
+        response = register_comment(data)
+        return response
+
+    elif request.method == "DELETE":
+        data = request.get_json()
+        data['creator_id'] = current_user['user_id']
+        return delete_comment(data)
+
+    elif request.method == "PUT":
+        data = request.get_json()
+        data['creator_id'] = current_user['user_id']
+        return update_comment(data)
 
 @pro_bp.route('/edit_sprint_task', methods=['POST'])
 @jwt_required()
@@ -878,7 +1042,6 @@ def edit_sprint_task():
             return jsonify(str(e))
         finally:
             conn.close()
-
 
 @pro_bp.route('/sprint', methods=['POST', 'GET', 'DELETE', 'PUT'])
 @jwt_required()
@@ -953,13 +1116,13 @@ def edit_project_member():
 
         cursor = conn.cursor()
         cursor.execute('''
-                           SELECT username
+                           SELECT username, role
                            FROM  Users u, UserProject up
                            WHERE up.project_id = ? and up.user_id = u.user_id
                        ''', (project_id,))
         all_users = cursor.fetchall()
-        all_users = [ p[0] for p in all_users]
-        all_users.append(owner)
+        all_users = [{'name': p[0], 'role':p[1]} for p in all_users]
+        all_users.append({'name': owner, 'role':'Project manager'})
 
         return jsonify({'users': all_users}), 200
 
@@ -988,35 +1151,50 @@ def edit_project_member():
                 ids.append(item[0])
 
             user_ids = []
+            new_users = []
             invalid_name = []
             # through user_name get user_id
             for user in data['users']:
+                name = user['name']
+                if 'role' not in user.keys():
+                    role = 'Programmer'
+                else:
+                    role = user['role']
                 cursor = conn.execute('SELECT user_id FROM Users WHERE username = ?',
-                                      (user,))
+                                      (name,))
                 i = cursor.fetchone()
                 if i is None:
-                    invalid_name.append(user)
+                    invalid_name.append(name)
                 else:
                     user_ids.append(i[0])
+                    new_users.append({'id': i[0], 'role': role})
 
             if len(invalid_name) != 0:
                 return jsonify({'err': 'User not exits.', 'users:': invalid_name}), 400
 
             if owner_id in user_ids:
-                return jsonify({'err': 'Cannot add/remove the project owner.'}), 400
+                return jsonify({'err': 'Cannot edit the project owner.'}), 400
 
+            if data['type'] == 'update':
+                different_elements = set(user_ids).difference(set(ids))
+                if different_elements:
+                    return jsonify({'err': 'user not exits in this project.',
+                                    'users:': ids_to_names(list(different_elements))}), 400
+                for user in new_users:
+                    conn.execute('''UPDATE UserProject
+                                    SET role = ?
+                                    WHERE project_id = ? and user_id = ?''',
+                                 (user['role'],project_id,user['id'],))
+                conn.commit()
+                return jsonify({'msg': 'Update user role Successfully'}), 200
             if data['type'] == 'add':
                 common_elements = set(ids) & set(user_ids)
                 if common_elements:
                     return jsonify({'err': 'user already exits.', 'users:': ids_to_names(list(common_elements))}), 400
 
-                cursor = conn.execute('SELECT user_id FROM UserProject WHERE project_id = ?',
-                                      (project_id,))
-
-
-                for user_id in user_ids:
-                    conn.execute('''INSERT INTO UserProject (user_id, project_id) VALUES (?, ?)''',
-                                 (user_id, project_id,))
+                for user in new_users:
+                    conn.execute('''INSERT INTO UserProject (user_id, project_id, role) VALUES (?, ?, ?)''',
+                                 (user['id'], project_id,user['role'],))
                 conn.commit()
                 return jsonify({'msg': 'Added project members Successfully'}), 200
 
@@ -1039,7 +1217,7 @@ def edit_project_member():
             else:
                 return jsonify({'err': 'No such opration'}), 400
         except Exception as e:
-            print(str(e))
+            return jsonify(str(e)), 401
         finally:
             conn.close()
 
