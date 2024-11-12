@@ -85,6 +85,44 @@
                         </v-avatar>
                         <div class="member-info flex-grow-1">
                           <div class="text-h6 font-weight-medium">{{ member.username }}</div>
+                          <div class="role-chip" @click.stop>
+                            <v-menu
+                              v-model="member.showRoleMenu"
+                              :close-on-content-click="false"
+                              location="bottom"
+                            >
+                              <template v-slot:activator="{ props }">
+                                <v-chip
+                                  :color="ROLE_COLORS[member.role]"
+                                  text-color="white"
+                                  size="small"
+                                  v-bind="props"
+                                >
+                                  {{ ROLES.find(r => r.value === member.role)?.text || member.role }}
+                                </v-chip>
+                              </template>
+                              
+                              <v-list>
+                                <v-list-item
+                                  v-for="role in ROLES"
+                                  :key="role.value"
+                                  :value="role.value"
+                                  @click="updateMemberRole(member, role.value)"
+                                  class="role-list-item"
+                                  :style="{
+                                    '--hover-color': `${role.color}15`
+                                  }"
+                                >
+                                  <template v-slot:prepend>
+                                    <v-icon :color="role.color" size="24">
+                                      {{ role.icon }}
+                                    </v-icon>
+                                  </template>
+                                  <v-list-item-title>{{ role.text }}</v-list-item-title>
+                                </v-list-item>
+                              </v-list>
+                            </v-menu>
+                          </div>
                         </div>
                         <v-checkbox-btn
                           v-model="selectedMembers"
@@ -172,6 +210,42 @@ import { useRoute } from 'vue-router'
 import Header from '@/components/Header.vue'
 import SideBar from '@/components/SideBar.vue'
 import { getProjectMembers, manageProjectMember } from '@/api/project'
+import { useToast } from 'vue-toastification'
+
+const ROLES = [
+  { 
+    value: 'Programmer', 
+    text: 'Programmer', 
+    color: '#2196F3',
+    icon: 'mdi-code-braces' 
+  },
+  { 
+    value: 'Tester', 
+    text: 'Tester', 
+    color: '#4CAF50',
+    icon: 'mdi-test-tube' 
+  },
+  { 
+    value: 'UI Designer', 
+    text: 'UI Designer', 
+    color: '#FF9800',
+    icon: 'mdi-palette' 
+  },
+  { 
+    value: 'DevOps engineer', 
+    text: 'DevOps engineer', 
+    color: '#E91E63',
+    icon: 'mdi-cog-transfer' 
+  },
+]
+
+const ROLE_COLORS = {
+  'Programmer': '#2196F3',
+  'Tester': '#4CAF50',
+  'UI Designer': '#FF9800',
+  'DevOps engineer': '#E91E63',
+  'Project manager': '#00BCD4'
+}
 
 export default {
   name: 'TeamView',
@@ -179,17 +253,16 @@ export default {
     Header,
     SideBar
   },
+  
   setup() {
     const route = useRoute()
     const projectId = route.params.id
-
-
     const headers = [
       { title: 'Avatar', key: 'avatar', sortable: false, width: '80px' },
       { title: 'Username', key: 'username', width: '200px' }
     ]
 
-
+    const toast = useToast()
     const members = ref([])
     const loading = ref(false)
     const selectedMembers = ref([])
@@ -199,6 +272,9 @@ export default {
     const usernameError = ref('')
     const addingMember = ref(false)
     const deletingMembers = ref(false)
+    const updatingRole = ref(false)
+    const showRoleMenu = ref(false)
+    const selectedMemberForRole = ref(null)
 
     const search = ref('')
 
@@ -225,8 +301,10 @@ export default {
       try {
         loading.value = true
         const response = await getProjectMembers({'project_id':projectId})
-        members.value = response.data.users.map(username => ({
-          username: username
+        members.value = response.data.users.map(user => ({
+          username: user.name,
+          role: user.role,
+          showRoleMenu: false
         }))
         console.log(members.value)
       } catch (error) {
@@ -244,7 +322,7 @@ export default {
 
       try {
         addingMember.value = true
-        const data = {'project_id':projectId,'type':'add','users':[newMemberUsername.value]}
+        const data = {'project_id':parseInt(projectId),'type':'add','users':[{name:newMemberUsername.value}]}
         await manageProjectMember(data)
         await fetchMembers()
         closeAddMemberDialog()
@@ -259,7 +337,7 @@ export default {
     const deleteSelectedMembers = async () => {
       try {
         deletingMembers.value = true
-        const data = {'project_id':projectId,'type':'remove','users':selectedMembers.value.map(member => member.username)}
+        const data = {'project_id':parseInt(projectId),'type':'remove','users':selectedMembers.value.map(member => ({name:member.username}))}
         await manageProjectMember(data)
         await fetchMembers()
         showDeleteConfirmation.value = false
@@ -286,6 +364,25 @@ export default {
       }
     }
 
+    const updateMemberRole = async (member, newRole) => {
+      try {
+        updatingRole.value = true
+        const data = {
+          'project_id': parseInt(projectId),
+          'type': 'update',
+          'users': [{'name': member.username, 'role': newRole}]
+        }
+        await manageProjectMember(data)
+        await fetchMembers()
+        toast.success('Role updated successfully')
+      } catch (error) {
+        console.error('Failed to update role:', error)
+        toast.error('Failed to update role')
+      } finally {
+        updatingRole.value = false
+      }
+    }
+
     onMounted(() => {
       fetchMembers()
     })
@@ -307,7 +404,12 @@ export default {
       closeAddMemberDialog,
       toggleMemberSelection,
       search,
-      filteredMembers
+      filteredMembers,
+      ROLES,
+      ROLE_COLORS,
+      updateMemberRole,
+      showRoleMenu,
+      selectedMemberForRole,
     }
   }
 }
@@ -367,5 +469,25 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.role-chip {
+  display: inline-block;
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+.role-list-item {
+  border-radius: 8px;
+  margin: 4px 8px;
+  transition: all 0.3s ease;
+}
+
+.role-list-item:hover {
+  background-color: var(--hover-color) !important;
+}
+
+.v-list-item-title {
+  font-weight: 500;
 }
 </style>
