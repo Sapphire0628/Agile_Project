@@ -490,7 +490,6 @@
         showPointsMenu,
         tasks,
         teamMembers,
-
         statusOptions,
         storyPointOptions,
         filteredTasks,

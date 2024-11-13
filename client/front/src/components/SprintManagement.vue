@@ -41,7 +41,6 @@
               </div>
             </div>
             
-            <!-- Sprint的任务接收区 -->
             <Draggable
               :list="sprint.tasks"
               group="tasks"

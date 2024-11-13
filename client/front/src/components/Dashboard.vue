@@ -50,6 +50,7 @@
                   class="task-card mb-3"
                   elevation="1"
                   :data-task-id="task.task_id"
+                  @click="openTaskCard(task)"
                 >
                   <v-card-text>
                     <div class="d-flex justify-space-between align-center">
@@ -79,6 +80,13 @@
       </div>
     </div>
   </div>
+  <TaskCard 
+    v-model="showTaskCard"
+    :task-id="selectedTaskId"
+    :task-statuses="taskStatuses"
+    :project-id="projectId"
+    @task-updated="fetchTasks"
+  />
 </template>
 
 <script>
@@ -88,11 +96,13 @@ import { useToast } from 'vue-toastification'
 import { updateTask } from '@/api/task'
 import { getSprints } from '@/api/sprint'
 import { useRoute } from 'vue-router'
+import TaskCard from './TaskCard.vue'
 
 export default {
   name: 'Dashboard',
   components: {
-    Draggable
+    Draggable,
+    TaskCard
   },
   props: {
     sprintId: {
@@ -115,6 +125,15 @@ export default {
     const tasksByStatus = ref({})
     const sprintStart = ref('')
     const sprintEnd = ref('')
+    const showTaskCard = ref(false)
+    const selectedTaskId = ref('')
+
+    const openTaskCard = (task) => {
+      if (task && task.task_id) {
+      selectedTaskId.value = task.task_id
+        showTaskCard.value = true
+      }
+    }
 
     const getStatusColor = (status) => {
       const colors = {
@@ -199,6 +218,12 @@ export default {
       { immediate: true }
     )
 
+    watch(showTaskCard, (newVal) => {
+      if (!newVal) {
+        selectedTaskId.value = null
+      }
+    })
+
     onMounted(() => {
       fetchTasks()
     })
@@ -213,7 +238,11 @@ export default {
       getStatusColor,
       onDragEnd,
       sprintStart,
-      sprintEnd
+      sprintEnd,
+      openTaskCard,
+      showTaskCard,
+      selectedTaskId,
+      fetchTasks
     }
   }
 }
