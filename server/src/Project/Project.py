@@ -254,6 +254,46 @@ def get_user_tasks(user_id):
     finally:
         conn.close()
 
+def get_one_task(data):
+    project_id = data['project_id']
+    task_id = data['task_id']
+    conn = get_db_connection()
+    try:
+        # get project detail
+        cursor = conn.execute('SELECT * FROM Projects WHERE project_id = ?', (project_id,))
+        pro = cursor.fetchone()
+
+        if pro:
+            pro_dict = {
+                'pro_id': pro[0],
+                'name': pro[1],
+                'description': pro[2],
+                'owner_id': pro[3],
+                'created_at': pro[4]
+            }
+            cursor = conn.cursor()
+            cursor.execute(''' SELECT task_name, description, status, priority, due_date,created_at FROM  Tasks WHERE  task_id = ?
+                                   ''', (task_id,))
+            task = cursor.fetchone()
+            print(task)
+            if task is None:
+                return jsonify({'error': 'No such task in project.'}), 401
+
+            task = {'task_name': task[0], 'description': task[1], 'status': task[2], 'priority': task[3], 'due_date': task[4], 'created_at': task[5]}
+
+            cursor = conn.execute(
+                'SELECT DISTINCT username FROM Users u, UserTask ut WHERE u.user_id = ut.user_id and ut.task_id = ?',
+                (task_id,))
+            members = cursor.fetchall()
+            members = [ m[0] for m in members]
+
+            return jsonify({'task': task, 'member' : members}), 200
+        else:
+            return jsonify({'error': 'Invalid Project id'}), 401
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 
 def get_project_detail(data):
     project_id = data['project_id']
@@ -429,15 +469,13 @@ def register_comment(data):
 
         if data['user_id'] not in pro_member_ids:
             return jsonify({'error': 'Current user can not create comment on this task.'}), 400
-
-        if 'comment' not in data.keys():
-            comment = ""
-        else:
-            comment = data['comment']
+        print("??")
+        if 'comment' not in data.keys() or data['comment'] == "":
+            return jsonify({'error': 'Comment context can not be empty'}), 400
 
         conn.execute('''INSERT INTO Comments (user_id, task_id, comment)
                                     VALUES (?, ?, ?)''',
-                     (data['user_id'], data['task_id'],comment,))
+                     (data['user_id'], data['task_id'],data['comment'],))
         conn.commit()
         response = jsonify({'message': 'Comment registered successfully'})
         return response, 200
@@ -933,6 +971,9 @@ def update_comment(data):
         if owner_id != data['creator_id'] and data['creator_id'] != user_id:
             return jsonify({'error': 'Current user can not update this comment.'}), 400
 
+        if data['comment'] == "":
+            return jsonify({'error': 'Comment context can not be empty.'}), 400
+
         conn.execute('''UPDATE Comments SET comment = ? WHERE comment_id = ?''',
                             (data['comment'], comment_id,))
         conn.commit()
@@ -1187,6 +1228,7 @@ def edit_project_member():
                                  (user['role'],project_id,user['id'],))
                 conn.commit()
                 return jsonify({'msg': 'Update user role Successfully'}), 200
+
             if data['type'] == 'add':
                 common_elements = set(ids) & set(user_ids)
                 if common_elements:
@@ -1232,7 +1274,10 @@ def project_detail():
         required_fields = ['project_id']
         if not all(field in args for field in required_fields):
             return jsonify({'error': 'Missing required fields'}), 400
-        return get_project_detail(args)
+        if 'task_id' in args:
+            return get_one_task(args)
+        else:
+            return get_project_detail(args)
 
     elif request.method == "POST":
         data = request.get_json()
