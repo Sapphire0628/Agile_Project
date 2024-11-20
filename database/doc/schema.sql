@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS Tasks (
     status TEXT CHECK(status IN ('Not start', 'Started', 'Testing', 'Review', 'Done')) DEFAULT 'Not start',
     priority INTEGER,
     due_date DATETIME,
+    done_date DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
