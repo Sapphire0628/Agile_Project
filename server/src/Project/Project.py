@@ -168,11 +168,14 @@ def get_one_sprint(args):
                     continue
 
                 cursor = conn.execute(
-                    '''SELECT task_name, status, priority FROM Tasks WHERE task_id = ?''', (task_id,))
+                    '''SELECT task_name, status, priority, due_date, done_date, created_at FROM Tasks WHERE task_id = ?''', (task_id,))
                 task = cursor.fetchone()
                 taskname = task[0]
                 status = task[1]
                 priority = task[2]
+                due_date = task[3]
+                done_date = task[4]
+                created_at = task[5]
 
                 cursor = conn.execute(
                     '''SELECT username FROM Users u, UserTask ut 
@@ -185,7 +188,10 @@ def get_one_sprint(args):
                                                    'id':task_id,
                                                    'status': status,
                                                    'members':members,
-                                                    'priority':priority})
+                                                    'priority':priority,
+                                                    'due_date':due_date,
+                                                    'done_date':done_date,
+                                                    'created_at':created_at})
                 if status == 'Done':
                     test['completed_task'].append({'name':taskname,
                                                    'id':task_id,
@@ -244,12 +250,12 @@ def get_user_tasks(user_id):
     try:
         cursor = conn.cursor()
         cursor.execute('''
-                       SELECT t.task_id, t.task_name, t.description, t.status, t.priority, t.due_date, t.created_at
-                       FROM UserTask ut, Tasks t
-                       WHERE ut.user_id = ? AND ut.task_id = t.task_id
+                       SELECT t.task_id, t.task_name, t.description, t.status, t.priority, t.due_date, t.created_at, pt.project_id
+                       FROM UserTask ut, Tasks t, ProjectTask pt
+                       WHERE ut.user_id = ? AND ut.task_id = t.task_id and pt.task_id = ut.task_id
                    ''', (user_id,))
         all_task = cursor.fetchall()
-        all_task = [{'task_id': t[0], 'task_name': t[1], 'description': t[2], 'status': t[3], 'priority': t[4], 'due_date': t[5], 'created_at': t[6]} for t in all_task]
+        all_task = [{'task_id': t[0], 'task_name': t[1], 'description': t[2], 'status': t[3], 'priority': t[4], 'due_date': t[5], 'created_at': t[6], 'project_id':t[7]} for t in all_task]
 
         return all_task
     finally:
@@ -689,6 +695,8 @@ def delete_task(data):
                      (task_id,))
         conn.execute('''DELETE FROM Sprint WHERE task_id = ?''',
                      (task_id,))
+        conn.execute('''DELETE FROM Comments WHERE task_id = ?''',
+                     (task_id,))
         conn.commit()
 
         return jsonify({'message': 'Task deleted successfully'}), 201
@@ -1006,11 +1014,12 @@ def chart():
     current_user = get_jwt_identity()
     if request.method == "GET":
         args = request.args
-        required_fields = ['project_id']
+        required_fields = ['project_id', 'round']
         if not all(field in args for field in required_fields):
             return jsonify({'error': 'Missing required fields'}), 400
 
         project_id = args['project_id']
+        round = args['round']
         conn = get_db_connection()
         try:
             cursor = conn.execute('SELECT * FROM Projects WHERE project_id = ?', (project_id,))
@@ -1018,12 +1027,19 @@ def chart():
             # check project
             if pro:
                 cursor = conn.cursor()
-                # get all task in this project
+                # check round
+                cursor.execute(''' SELECT task_id, start_at, due_date, name FROM  Sprint WHERE  project_id = ? and round = ?
+                                                      ''', (project_id, round,))
+                tasks = cursor.fetchall()
+                if tasks is None:
+                    return jsonify({'error': 'No such sprint round in project.'}), 401
+
+                # get all task in this round
                 cursor = conn.execute(
                     '''SELECT t.task_id, t.task_name, t.due_date, t.done_date, t.created_at
-                       FROM Tasks t, ProjectTask pt
-                       WHERE t.task_id = pt.task_id and pt.project_id = ?''',
-                    (project_id,))
+                       FROM Tasks t, Sprint s
+                       WHERE t.task_id = s.task_id and s.project_id = ? and s.round = ?''',
+                    (project_id,round,))
                 tasks = cursor.fetchall()
                 # turn list information into dictionary
                 tasks = [{'task_id': t[0], 'task_name': t[1], 'due_date': t[2], 'done_date': t[3], 'created_at': t[4] } for t in tasks]
