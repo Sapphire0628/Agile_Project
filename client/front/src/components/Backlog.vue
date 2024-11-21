@@ -188,6 +188,32 @@
                   class="mb-6"
                 ></v-select>
 
+                <v-menu
+                  v-model="showDatePicker"
+                  :close-on-content-click="false"
+                  location="bottom"
+                  min-width="auto"
+                  class="mb-6"
+                >
+                  <template v-slot:activator="{ props }">
+                    <v-text-field
+                      v-model="formattedDueDate"
+                      label="Due Date"
+                      readonly
+                      v-bind="props"
+                      variant="outlined"
+                      prepend-inner-icon="mdi-calendar"
+                      clearable
+                      @click:clear="newTask.due_date = null"
+                    ></v-text-field>
+                  </template>
+                  <v-date-picker
+                    v-model="newTask.due_date"
+                    @update:model-value="showDatePicker = false"
+                    :min="minDate"
+                  ></v-date-picker>
+                </v-menu>
+
                 <div class="points-selector">
                   <v-text-field
                     v-model="newTask.priority"
@@ -274,7 +300,7 @@
       }
     },
     expose: ['fetchTasks'],
-    setup(props) {
+    setup(props, {emit}) {
       const router = useRouter()
       const search = ref('')
       const showNewTaskDialog = ref(false)
@@ -309,6 +335,7 @@
           try{
             await updateSprintTask({tasks:[taskId], round:sprintId, type:'add', project_id:props.projectId})
             await fetchTasks()
+            emit('sprint-updated')
             toast.success('任务移动成功')
           } catch (error) {
             console.error('Failed to update task sprint:', error)
@@ -317,7 +344,9 @@
           }
         }
       }
-  
+      const minDate = computed(() => {
+        return new Date().toISOString().split('T')[0]
+      })
       const openEditDialog = (task) => {
         currentTask.value = {...task}
         editDialog.value = true
@@ -333,7 +362,15 @@
         description: '',
         status: 'Not start',
         priority: null,
-        project_id: props.projectId
+        project_id: props.projectId,
+        due_date: null
+      })
+
+      const showDatePicker = ref(false)
+
+      const formattedDueDate = computed(() => {
+        if (!newTask.value.due_date) return ''
+        return new Date(newTask.value.due_date).toLocaleDateString('zh-CN')
       })
 
       const resetForm = () => {
@@ -342,7 +379,8 @@
           description: '',
           status: 'Not start',
           priority: null,
-          project_id: props.projectId
+          project_id: props.projectId,
+          due_date: null
         }
         if (form.value) {
           form.value.resetValidation()
@@ -512,7 +550,10 @@
         handleDeleteTask,
         form,
         getStatusColor,
-        fetchTasks
+        fetchTasks,
+        showDatePicker,
+        formattedDueDate,
+        minDate
       }
     }
   }

@@ -1,6 +1,7 @@
 <template>
+  <div class="register-container">
     <v-card class="corner" width="500px">
-        <v-toolbar>
+        <v-toolbar color="primary">
           <v-toolbar-title class="text-center w-100">注册</v-toolbar-title>
         </v-toolbar>
         <v-container fluid>
@@ -36,11 +37,17 @@
           </v-card-text>
         </v-container>
       </v-card>
+  </div>
 </template>
 
 <script>
+import { useToast } from 'vue-toastification'
 export default {
-data:() => ({
+  setup() {
+    const toast = useToast()
+    return { toast }
+  },
+  data:() => ({
     valid: true,
     username: '',
     usernameRules: [
@@ -72,9 +79,11 @@ methods: {
         })
         .then(() => {
           console.log('注册成功')
+          this.toast.success('注册成功')
           this.$router.push('/login')
         })
         .catch(() =>{
+          this.toast.error('注册失败')
           console.log('注册失败')
         })
       }
@@ -89,9 +98,23 @@ methods: {
 }
 </script>
 
-<style scope>
-.corner{
-border-radius: 15px;
+<style scoped>
+.corner {
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
+.register-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding-top: 10vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.v-card {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.9) !important;
+}
 </style>

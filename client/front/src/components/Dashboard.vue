@@ -25,8 +25,8 @@
         class="status-column"
         :data-status="status"
       >
-        <v-card class="h-100">
-          <v-card-title class="column-header">
+        <v-card class="h-100" >
+          <v-card-title class="column-header" :style="{ backgroundColor: `${getTitleColor(status)}!important` }">
             {{ status }}
             <v-chip class="ml-2" size="small">
               {{ tasksByStatus[status]?.length || 0 }}
@@ -135,16 +135,28 @@ export default {
       }
     }
 
-    const getStatusColor = (status) => {
+    const getTitleColor = (status) => {
       const colors = {
-        'Not start': 'grey',
-        'Started': 'blue',
-        'Testing': 'orange',
-        'Review': 'purple',
-        'Done': 'success'
+        'Not start': 'rgba(158, 158, 158, 0.2)',  
+        'Started': 'rgba(33, 150, 243, 0.2)',     
+        'Testing': 'rgba(255, 152, 0, 0.2)',      
+        'Review': 'rgba(156, 39, 176, 0.2)',     
+        'Done': 'rgba(76, 175, 80, 0.2)'          
       }
-      return colors[status] || 'grey'
+      return colors[status] || 'rgba(158, 158, 158, 0.2)'
     }
+
+    const getStatusColor = (status) => {
+        const colors = {
+          'Not start': 'grey',
+          'Started': 'blue',
+          'Testing': 'orange',
+          'Review': 'purple',
+          'Done': 'success'
+        }
+        return colors[status] || 'grey'
+      }
+
 
     const completionRate = computed(() => {
       const complte = tasksByStatus.value['Done']?.length || 0
@@ -242,7 +254,8 @@ export default {
       openTaskCard,
       showTaskCard,
       selectedTaskId,
-      fetchTasks
+      fetchTasks,
+      getTitleColor
     }
   }
 }
@@ -278,7 +291,6 @@ export default {
   font-size: 1rem;
   font-weight: 500;
   padding: 16px;
-  background: #f5f5f5;
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
 }
 
@@ -286,7 +298,6 @@ export default {
   height: calc(100% - 64px);
   overflow-y: auto;
   padding: 0 !important;
-  background-color: #f8f9fa;
 }
 
 .task-card {
@@ -348,6 +359,14 @@ export default {
   color: #999;
   font-size: 0.9rem;
   font-style: italic;
+}
+
+:deep(.v-card-title) {
+  background-color: transparent !important;
+}
+
+.status-column .v-card {
+  background-color: white; 
 }
 
 </style>

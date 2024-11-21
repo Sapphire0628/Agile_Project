@@ -22,56 +22,89 @@
           :key="sprint.id"
           class="active-sprint"
         >
-          <template v-slot:prepend>
-            <v-icon color="primary">
-              mdi-calendar
-            </v-icon>
-          </template>
-  
-          <v-list-item-title class="d-flex flex-column">
-            <div class="d-flex align-center justify-space-between w-100 mb-2">
-              <div>
-                <div class="text-subtitle-1">Sprint {{ sprint.name }}</div>
-                <div class="text-caption text-grey">
-                  {{ formatDate(sprint.start_at) }} - {{ formatDate(sprint.due_date) }}
-                </div>
-              </div>
-              <div class="text-caption">
-                {{ sprint.completedTasks }}/{{ sprint.totalTasks }} tasks
-              </div>
-            </div>
-            
-            <Draggable
-              :list="sprint.tasks"
-              group="tasks"
-              item-key="id"
-              :data-sprint-id="sprint.id"
-              class="sprint-tasks-container"
-              @add="onTaskAdded($event, sprint.id)"
-              @remove="fetchSprints"
-            >
-              <template #item="{ element: task }">
-                <v-card class="task-card ma-2" flat :data-task-id="task.task_id" :data-sprint-id="sprint.id">
-                  <v-card-text class="py-2">
-                    <div class="d-flex align-center justify-space-between">
-                      <div class="d-flex align-center">
-                        <span class="text-body-2">#{{ task.task_id }} {{ task.task_name }}</span>
-                        <v-chip size="x-small" class="ml-2" :color="getStatusColor(task.status)">
-                          {{ task.status }}
-                        </v-chip>
-                      </div>
-                      <v-btn
-                        icon="mdi-close"
-                        size="x-small"
-                        variant="text"
-                        @click="removeTaskFromSprint(task.task_id, sprint.id)"
-                      ></v-btn>
-                    </div>
-                  </v-card-text>
-                </v-card>
+          <v-card width="100%" class="sprint-card">
+            <v-card-item>
+              <template v-slot:prepend>
+                <v-icon color="primary" size="large">mdi-calendar-clock</v-icon>
               </template>
-            </Draggable>
-          </v-list-item-title>
+              
+              <div class="d-flex flex-column w-100">
+                <div class="d-flex align-center justify-space-between mb-2">
+                  <div>
+                    <div class="text-h6">Sprint {{ sprint.name }}</div>
+                    <div class="text-caption text-grey">
+                      {{ formatDate(sprint.start_at) }} - {{ formatDate(sprint.due_date) }}
+                    </div>
+                  </div>
+                  <v-chip
+                    :color="getSprintStatusColor(sprint)"
+                    size="small"
+                  >
+                    {{ getSprintStatus(sprint) }}
+                  </v-chip>
+                </div>
+
+                <div class="progress-container d-flex align-center mb-2">
+                  <v-progress-linear
+                    :model-value="(sprint.completedTasks / (sprint.totalTasks || 1)) * 100"
+                    height="20"
+                    rounded
+                    color="primary"
+                    bg-color="primary-lighten-3"
+                    class="flex-grow-1"
+                  >
+                    <template v-slot:default="{ value }">
+                      <div class="progress-text">
+                        <strong>{{ Math.ceil(value) }}%</strong>
+                      </div>
+                    </template>
+                  </v-progress-linear>
+                </div>
+
+                <div class="d-flex align-center justify-space-between text-caption mb-3">
+                  <div class="d-flex align-center">
+                    <v-icon size="small" class="mr-1">mdi-checkbox-marked-circle</v-icon>
+                    {{ sprint.completedTasks }}/{{ sprint.totalTasks }} 任务完成
+                  </div>
+                  <div class="d-flex align-center">
+                    <v-icon size="small" class="mr-1">mdi-clock-outline</v-icon>
+                    {{ calculateRemainingDays(sprint.due_date) }} 天剩余
+                  </div>
+                </div>
+
+                <Draggable
+                  :list="sprint.tasks"
+                  group="tasks"
+                  item-key="id"
+                  :data-sprint-id="sprint.id"
+                  class="sprint-tasks-container"
+                  @add="onTaskAdded($event, sprint.id)"
+                  @remove="fetchSprints"
+                >
+                  <template #item="{ element: task }">
+                    <v-card class="task-card ma-2" flat :data-task-id="task.task_id" :data-sprint-id="sprint.id">
+                      <v-card-text class="py-2">
+                        <div class="d-flex align-center justify-space-between">
+                          <div class="d-flex align-center">
+                            <span class="text-body-2">#{{ task.task_id }} {{ task.task_name }}</span>
+                            <v-chip size="x-small" class="ml-2" :color="getStatusColor(task.status)">
+                              {{ task.status }}
+                            </v-chip>
+                          </div>
+                          <v-btn
+                            icon="mdi-close"
+                            size="x-small"
+                            variant="text"
+                            @click="removeTaskFromSprint(task.task_id, sprint.id)"
+                          ></v-btn>
+                        </div>
+                      </v-card-text>
+                    </v-card>
+                  </template>
+                </Draggable>
+              </div>
+            </v-card-item>
+          </v-card>
         </v-list-item>
       </v-list>
   
@@ -94,7 +127,11 @@
                     label="Start Date"
                     type="date"
                     required
-                    :rules="[v => !!v || 'Start date is required']"
+                    :min="formatDate(new Date())"
+                    :rules="[
+                      v => !!v || '开始日期不能为空',
+                      v => new Date(v) >= new Date(formatDate(new Date())) || '开始日期不能早于今天'
+                    ]"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="6">
@@ -103,7 +140,11 @@
                     label="End Date"
                     type="date"
                     required
-                    :rules="[v => !!v || 'End date is required']"
+                    :min="newSprint.start_at"
+                    :rules="[
+                      v => !!v || '结束日期不能为空',
+                      v => !newSprint.start_at || new Date(v) >= new Date(newSprint.start_at) || '结束日期不能早于开始日期'
+                    ]"
                   ></v-text-field>
                 </v-col>
               </v-row>
@@ -142,6 +183,7 @@
       }
     }
   },
+    expose: ['fetchSprints'],
     setup(props, { emit }) {
       const showNewSprintDialog = ref(false)
       const valid = ref(false)
@@ -316,6 +358,33 @@
         showNewSprintDialog.value = true
       }
   
+      const calculateRemainingDays = (dueDate) => {
+        const now = new Date()
+        const due = new Date(dueDate)
+        const diffTime = due - now
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        return diffDays > 0 ? diffDays : 0
+      }
+  
+      const getSprintStatus = (sprint) => {
+        const now = new Date()
+        const startDate = new Date(sprint.start_at)
+        const dueDate = new Date(sprint.due_date)
+        
+        if (now < startDate) return '未开始'
+        if (now > dueDate) return '已结束'
+        return '进行中'
+      }
+  
+      const getSprintStatusColor = (sprint) => {
+        const now = new Date()
+        const startDate = new Date(sprint.start_at)
+        const dueDate = new Date(sprint.due_date)
+        
+        if (now < startDate) return 'grey'
+        if (now > dueDate) return 'error'
+        return 'primary'
+      }
       return {
         showNewSprintDialog,
         valid,
@@ -331,7 +400,10 @@
         sprintsData,
         isLoadingSprints,
         removeTaskFromSprint,
-        openNewSprintDialog
+        openNewSprintDialog,
+        calculateRemainingDays,
+        getSprintStatus,
+        getSprintStatusColor
       }
     }
   }
@@ -379,5 +451,21 @@
   
   .task-card:hover {
     transform: translateY(-2px);
+  }
+  
+  .progress-container {
+    position: relative;
+    width: 100%;
+  }
+  
+  .progress-text {
+    color: white;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
+    font-size: 0.875rem;
+  }
+  
+  .v-progress-linear {
+    border-radius: 10px;
+    overflow: hidden;
   }
   </style>

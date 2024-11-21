@@ -78,10 +78,16 @@ export default {
 
     const fetchSprints = async () => {
       const response = await getSprints({ project_id: route.params.id })
-      sprints.value = Object.keys(response.data).map(key => ({
-        id: key,
-        ...response.data[key],
-        tasks: response.data[key].total_tasks.map(task => ({
+      const currentDate = new Date()
+      currentDate.setHours(0, 0, 0, 0)
+      sprints.value = Object.keys(response.data).
+      filter(key => {
+        const dueDate = response.data[key].due_date ? new Date(response.data[key].due_date) : null
+        return !dueDate || dueDate >= currentDate
+        }).map(key => ({
+          id: key,
+          ...response.data[key],
+          tasks: response.data[key].total_tasks.map(task => ({
           task_id: task.id,
           task_name: task.name,
           status: task.status
@@ -102,7 +108,8 @@ export default {
       isProjectRoute,
       navigateToProject,
       navigateToSprint,
-      sprints
+      sprints,
+      fetchSprints
     }
   }
 }

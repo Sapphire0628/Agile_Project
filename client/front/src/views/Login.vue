@@ -1,38 +1,46 @@
 <template>
-      <v-card class="corner" width="500px">
-          <v-toolbar>
-            <v-toolbar-title>登录</v-toolbar-title>
-          </v-toolbar>
-          <v-container fluid>
-            <v-card-text>
-              <v-form @keyup.enter.native="login" v-model="valid" ref="form" lazy-validation>
-                <v-text-field
-                v-model="username"
-                label="用户名"
-                :rules="usernameRules"
-                :counter="10"
-                required
-                prepend-inner-icon="mdi mdi-account"
-              ></v-text-field>
-                <v-text-field
-                  v-model="password"
-                  :rules="passwordRules"
-                  label="密码"
-                  required
-                  prepend-inner-icon="mdi mdi-lock"
-                ></v-text-field>
-              </v-form>
-                <v-card-actions class="d-flex justify-center">
-                  <v-btn variant="outlined" color="primary" :disabled="!valid" @click="login">登录</v-btn>
-                  <v-btn variant="outlined" @click="goToRegister">没有账号？注册</v-btn>
-                </v-card-actions>
-            </v-card-text>
-          </v-container>
-        </v-card>
+  <div class="login-container">
+    <v-card class="corner" width="500px">
+      <v-toolbar color="primary">
+        <v-toolbar-title>登录</v-toolbar-title>
+      </v-toolbar>
+      <v-container fluid>
+        <v-card-text>
+          <v-form @keyup.enter.native="login" v-model="valid" ref="form" lazy-validation>
+            <v-text-field
+            v-model="username"
+            label="用户名"
+            :rules="usernameRules"
+            :counter="10"
+            required
+            prepend-inner-icon="mdi mdi-account"
+          ></v-text-field>
+            <v-text-field
+              v-model="password"
+              :rules="passwordRules"
+              label="密码"
+              required
+              prepend-inner-icon="mdi mdi-lock"
+            ></v-text-field>
+          </v-form>
+            <v-card-actions class="d-flex justify-center">
+              <v-btn variant="outlined" color="primary" :disabled="!valid" @click="login">登录</v-btn>
+              <v-btn variant="outlined" @click="goToRegister">没有账号？注册</v-btn>
+            </v-card-actions>
+        </v-card-text>
+      </v-container>
+    </v-card>
+  </div>
 </template>
 
 <script>
+import { useToast } from 'vue-toastification'
+
 export default {
+  setup() {
+    const toast = useToast()
+    return { toast }
+  },
   data:() => ({
       valid: true,
       username: '',
@@ -61,10 +69,12 @@ export default {
             const token = response.data.token
             this.$store.dispatch('user/login', token)
             this.$store.dispatch('user/setUsername', this.username)
+            this.toast.success('登录成功')
             this.$router.push('/home')
             console.log('登录成功')
           })
           .catch(() => {
+            this.toast.error('登录失败')
             console.log('登陆失败')
           })
         }
@@ -79,9 +89,23 @@ export default {
 
 </script>
 
-<style scope>
-.corner{
+<style scoped>
+.corner {
   border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding-top: 15vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.v-card {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.9) !important;
+}
 </style>

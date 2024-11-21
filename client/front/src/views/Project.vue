@@ -1,7 +1,7 @@
 <template>
   <v-layout>
     <Header />
-    <SideBar />
+    <SideBar ref="sideBar"/>
     <v-main>
       <v-container fluid>
         <v-row>
@@ -9,12 +9,15 @@
           <v-col cols="12" md="8">
             <Backlog 
             ref="backlog"
-            :project-id="projectId" />
+            :project-id="projectId" 
+            @sprint-updated="SprintUpdated"
+            />
           </v-col>
 
           <v-col cols="12" md="4">
             <SprintManagement :project-id="projectId" @task-removed-from-sprint="RemoveFromSprint" 
             @sprint-created="SprintCreated"
+            ref="sprintManagementRef"
             />
           </v-col>
         </v-row>
@@ -43,6 +46,7 @@ export default defineComponent({
     const route = useRoute()
     const backlog = ref(null)
     const sideBar = ref(null)
+    const sprintManagementRef = ref(null)
     const RemoveFromSprint = async () => {
       if (backlog.value && typeof backlog.value.fetchTasks === 'function') {
         await backlog.value.fetchTasks()
@@ -58,13 +62,23 @@ export default defineComponent({
         console.error('SideBar reference or fetchSprints method not available')
       }
     }
+    const SprintUpdated = async () => {
+      if (sprintManagementRef.value && typeof sprintManagementRef.value.fetchSprints === 'function') {
+        await sprintManagementRef.value.fetchSprints()
+      } else {
+        console.error('SprintManagement reference or fetchSprints method not available')
+      }
+    }
+
     const projectId = ref(parseInt(route.params.id))
     return {
       projectId,
       RemoveFromSprint,
       SprintCreated,
+      SprintUpdated,
       backlog,
-      sideBar
+      sideBar,
+      sprintManagementRef
     }
   }
 })
