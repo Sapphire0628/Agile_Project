@@ -20,7 +20,7 @@
             class="project-selector"
           >
             <v-icon class="mr-2">mdi-briefcase</v-icon>
-            项目
+            Projects
           </v-btn>
         </template>
   
@@ -70,7 +70,7 @@
   
         <v-list>
           <v-list-item @click="handleLogout">
-            <v-list-item-title>登出</v-list-item-title>
+            <v-list-item-title>Log out</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
@@ -160,14 +160,14 @@
   const avatarColor = computed(() => {
 
     const colors = [
-      '#2196F3', // 蓝色
-      '#4CAF50', // 绿色
-      '#FF9800', // 橙色
-      '#E91E63', // 粉色
-      '#9C27B0', // 紫色
-      '#00BCD4', // 青色
-      '#009688', // 蓝绿色
-      '#F44336'  // 红色
+      '#2196F3', 
+      '#4CAF50', 
+      '#FF9800', 
+      '#E91E63', 
+      '#9C27B0',
+      '#00BCD4', 
+      '#009688', 
+      '#F44336'  
     ]
     
     const hash = username.value.split('').reduce((acc, char) => {
@@ -201,12 +201,12 @@
 
   const getProjectColor = (projectName) => {
     const colors = [
-      'rgb(25, 118, 210)',   // 蓝色
-      'rgb(56, 142, 60)',    // 绿色
-      'rgb(211, 47, 47)',    // 红色
-      'rgb(123, 31, 162)',   // 紫色
-      'rgb(245, 124, 0)',    // 橙色
-      'rgb(0, 151, 167)'     // 青色
+      'rgb(25, 118, 210)',   
+      'rgb(56, 142, 60)',   
+      'rgb(211, 47, 47)',    
+      'rgb(123, 31, 162)',   
+      'rgb(245, 124, 0)',    
+      'rgb(0, 151, 167)'     
     ]
     
     if (!projectName) return colors[0]

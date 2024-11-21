@@ -7,7 +7,6 @@
       
       <v-row>
         <v-col cols="12" md="6">
-          <!-- 管理的项目 -->
           <v-card class="pa-4">
             <h2 class="text-h6 mb-4">Owned</h2>
             <div class="project-list">
@@ -23,7 +22,6 @@
           </v-card>
         </v-col>
         <v-col cols="12" md="6">
-          <!-- 所属的项目 -->
           <v-card class="pa-4">
             <h2 class="text-h6 mb-4">Belong to</h2>
             <div class="project-list">
@@ -40,7 +38,6 @@
         </v-col>
       </v-row>
 
-      <!-- 管理项目按钮 -->
       <div class="text-center mt-6">
         <v-btn
           color="cyan-lighten-3"
@@ -92,7 +89,6 @@ export default {
       router.push('/add-project')
     }
 
-    // 组件挂载时获取数据
     onMounted(() => {
         fetchProjects()
     })

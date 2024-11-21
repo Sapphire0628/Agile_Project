@@ -7,18 +7,18 @@
       <v-text-field
         variant="outlined"
         v-model="project_name"
-        label="项目名称"
+        label="Project Name"
         required
-        :rules="[v => !!v || '项目名称是必填的']"
+        :rules="[v => !!v || 'Project name is required']"
         class="mb-4"
       ></v-text-field>
 
       <v-textarea
         variant="outlined"
         v-model="description"
-        label="项目描述"
+        label="Project Description"
         required
-        :rules="[v => !!v || '项目描述是必填的']"
+        :rules="[v => !!v || 'Project description is required']"
         rows="6"
       ></v-textarea>
       <div class="d-flex justify-center mt-2">
@@ -29,7 +29,7 @@
           min-width="120"
           class="mr-8"
         >
-          返回
+          Back
         </v-btn>
         <v-btn
           rounded="lg"
@@ -37,7 +37,7 @@
           type="submit"
           min-width="120"
         >
-          创建项目
+          Create Project
         </v-btn>
       </div>
     </v-form>
@@ -62,7 +62,7 @@ export default {
         this.$router.back()
         console.log(response)
       } catch (err) {
-        console.error('获取项目失败:', err)
+        console.error('Failed to get project:', err)
       }
     }
   }

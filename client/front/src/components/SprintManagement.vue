@@ -64,11 +64,11 @@
                 <div class="d-flex align-center justify-space-between text-caption mb-3">
                   <div class="d-flex align-center">
                     <v-icon size="small" class="mr-1">mdi-checkbox-marked-circle</v-icon>
-                    {{ sprint.completedTasks }}/{{ sprint.totalTasks }} 任务完成
+                    {{ sprint.completedTasks }}/{{ sprint.totalTasks }} Tasks completed
                   </div>
                   <div class="d-flex align-center">
                     <v-icon size="small" class="mr-1">mdi-clock-outline</v-icon>
-                    {{ calculateRemainingDays(sprint.due_date) }} 天剩余
+                    {{ calculateRemainingDays(sprint.due_date) }} Days remaining
                   </div>
                 </div>
 
@@ -82,11 +82,18 @@
                   @remove="fetchSprints"
                 >
                   <template #item="{ element: task }">
-                    <v-card class="task-card ma-2" flat :data-task-id="task.task_id" :data-sprint-id="sprint.id">
+                    <v-card class="task-card ma-2" 
+                      flat 
+                      :data-task-id="task.task_id" 
+                      :data-sprint-id="sprint.id"
+                      :class="{ 'task-done': task.status === 'Done' }"
+                    >
                       <v-card-text class="py-2">
                         <div class="d-flex align-center justify-space-between">
                           <div class="d-flex align-center">
-                            <span class="text-body-2">#{{ task.task_id }} {{ task.task_name }}</span>
+                            <span class="text-body-2" :class="{ 'task-title-done': task.status === 'Done' }">
+                              #{{ task.task_id }} {{ task.task_name }}
+                            </span>
                             <v-chip size="x-small" class="ml-2" :color="getStatusColor(task.status)">
                               {{ task.status }}
                             </v-chip>
@@ -110,7 +117,7 @@
   
       <v-dialog v-model="showNewSprintDialog" max-width="500px">
         <v-card>
-          <v-card-title>新建 Sprint {{ newSprint.round }}</v-card-title>
+          <v-card-title>Sprint {{ newSprint.round }}</v-card-title>
           <v-card-text>
             <v-form ref="form" v-model="valid">
               <v-text-field
@@ -127,11 +134,8 @@
                     label="Start Date"
                     type="date"
                     required
-                    :min="formatDate(new Date())"
-                    :rules="[
-                      v => !!v || '开始日期不能为空',
-                      v => new Date(v) >= new Date(formatDate(new Date())) || '开始日期不能早于今天'
-                    ]"
+                    :min="latestSprintEndDate ? formatDate(new Date(latestSprintEndDate)) : formatDate(new Date())"
+                    :rules="getStartDateRules"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="6">
@@ -142,8 +146,8 @@
                     required
                     :min="newSprint.start_at"
                     :rules="[
-                      v => !!v || '结束日期不能为空',
-                      v => !newSprint.start_at || new Date(v) >= new Date(newSprint.start_at) || '结束日期不能早于开始日期'
+                      v => !!v || 'End date cannot be empty',
+                      v => !newSprint.start_at || new Date(v) >= new Date(newSprint.start_at) || 'End date cannot be earlier than start date'
                     ]"
                   ></v-text-field>
                 </v-col>
@@ -223,9 +227,9 @@
             project_id: props.projectId
           })
           await fetchSprints()
-          toast.success('任务已添加')
+          toast.success('Task added')
         } catch (error) {
-          toast.error('无法更新任务Sprint')
+          toast.error('Failed to update task sprint')
           await fetchSprints()
           }
         }
@@ -260,10 +264,10 @@
           }
           form.value?.reset()
           await fetchSprints()
-          toast.success('创建sprint成功')
+          toast.success('Sprint created successfully')
           emit('sprint-created')
         } catch (error) {
-          toast.error('创建sprint失败')
+          toast.error('Failed to create sprint')
           console.error('Failed to create sprint:', error)
         }
       }
@@ -293,7 +297,7 @@
             }))
         } catch (error) {
           console.error('Failed to fetch sprints:', error)
-          toast.error('获取sprints失败')
+          toast.error('Failed to fetch sprints')
           sprints.value = []
         } finally {
           isLoadingSprints.value = false
@@ -335,10 +339,10 @@
           })
           await fetchSprints()
           emit('task-removed-from-sprint')
-          toast.success('任务已移回Backlog')
+          toast.success('Task moved back to backlog')
         } catch (error) {
           console.error('Failed to remove task from sprint:', error)
-          toast.error('无法移除任务')
+          toast.error('Failed to move task back to backlog')
           await fetchSprints()
         }
       }
@@ -355,6 +359,11 @@
   
       const openNewSprintDialog = () => {
         newSprint.value.round = getNextRound()
+        if (latestSprintEndDate.value) {
+          const nextDay = new Date(latestSprintEndDate.value)
+          nextDay.setDate(nextDay.getDate() + 1)
+          newSprint.value.start_at = formatDate(nextDay)
+        }
         showNewSprintDialog.value = true
       }
   
@@ -371,9 +380,9 @@
         const startDate = new Date(sprint.start_at)
         const dueDate = new Date(sprint.due_date)
         
-        if (now < startDate) return '未开始'
-        if (now > dueDate) return '已结束'
-        return '进行中'
+        if (now < startDate) return 'Not started'
+        if (now > dueDate) return 'Ended'
+        return 'In progress'
       }
   
       const getSprintStatusColor = (sprint) => {
@@ -385,6 +394,30 @@
         if (now > dueDate) return 'error'
         return 'primary'
       }
+
+      const latestSprintEndDate = computed(() => {
+        if (!sprints.value.length) return null;
+        return sprints.value.reduce((latest, sprint) => {
+          const dueDate = new Date(sprint.due_date);
+          return dueDate > latest ? dueDate : latest;
+        }, new Date(sprints.value[0].due_date));
+      });
+
+      const getStartDateRules = computed(() => {
+        const baseRules = [
+          v => !!v || 'Start date cannot be empty',
+          v => new Date(v) >= new Date(formatDate(new Date())) || 'Start date cannot be earlier than today'
+        ];
+        
+        if (latestSprintEndDate.value) {
+          baseRules.push(
+            v => new Date(v) > latestSprintEndDate.value || 'New sprint start time must be later than the end time of the existing sprint'
+          );
+        }
+        
+        return baseRules;
+      });
+
       return {
         showNewSprintDialog,
         valid,
@@ -403,7 +436,9 @@
         openNewSprintDialog,
         calculateRemainingDays,
         getSprintStatus,
-        getSprintStatusColor
+        getSprintStatusColor,
+        getStartDateRules,
+        latestSprintEndDate
       }
     }
   }
@@ -467,5 +502,24 @@
   .v-progress-linear {
     border-radius: 10px;
     overflow: hidden;
+  }
+  
+  .task-done {
+    background-color: #f5f5f5;
+    opacity: 0.8;
+    border: none;
+  }
+  
+  .task-title-done {
+    color: #9e9e9e;
+    text-decoration: line-through;
+  }
+  
+  .task-done:hover {
+    transform: none !important;
+  }
+  
+  .task-done .task-meta .v-chip {
+    opacity: 0.7;
   }
   </style>

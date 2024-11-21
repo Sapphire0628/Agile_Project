@@ -43,12 +43,13 @@
             <v-card 
               :key="task.task_id" 
               class="task-card mb-4"
+              :class="{ 'task-done': task.status === 'Done' }"
               elevation="1"
               :data-task-id="task.task_id"
             >
               <v-card-text>
                 <div class="d-flex justify-space-between align-center">
-                  <div class="task-name text-h6">
+                  <div class="task-name text-h6" :class="{ 'task-title-done': task.status === 'Done' }">
                     <span class="task-id">#{{ task.task_id }}</span>
                     {{ task.task_name }}
                   </div>
@@ -133,7 +134,7 @@
                       <v-list-item
                         @click="handleDeleteTask(task.task_id)"
                         prepend-icon="mdi-delete"
-                        title="删除"
+                        title="delete"
                             color="error"
                           ></v-list-item>
                         </v-list>
@@ -301,7 +302,6 @@
     },
     expose: ['fetchTasks'],
     setup(props, {emit}) {
-      const router = useRouter()
       const search = ref('')
       const showNewTaskDialog = ref(false)
       const showPointsMenu = ref(false)
@@ -336,10 +336,10 @@
             await updateSprintTask({tasks:[taskId], round:sprintId, type:'add', project_id:props.projectId})
             await fetchTasks()
             emit('sprint-updated')
-            toast.success('任务移动成功')
+            toast.success('Task moved successfully')
           } catch (error) {
             console.error('Failed to update task sprint:', error)
-            toast.error('任务移动失败')
+            toast.error('Failed to move task')
             await fetchTasks()
           }
         }
@@ -389,12 +389,12 @@
   
       const createTask = async () => {
         if(!form.value){
-            toast.error('表单未初始化')
+            toast.error('Form not initialized')
             return
         }
         const { valid } = await form.value.validate()
         if(!valid){
-            toast.error('请填写任务名')
+            toast.error('Please fill in the task name')
             return
         }
         try {
@@ -484,10 +484,10 @@
           if (task) {
             task.status = newStatus
           }
-          toast.success('状态更新成功')
+          toast.success('Status updated successfully')
         } catch (error) {
           console.error('Failed to update task status:', error)
-          toast.error('状态更新失败')
+          toast.error('Failed to update status')
         }
       }
 
@@ -500,10 +500,10 @@
           if (task) {
             task.priority = newPoints
           }
-          toast.success('分数更新成功')
+          toast.success('Points updated successfully')
         } catch (error) {
           console.error('Failed to update task points:', error)
-          toast.error('分数更新失败')
+          toast.error('Failed to update points')
         }
       }
 
@@ -511,10 +511,10 @@
         try {
           await deleteTask({task_id:taskId})
           await fetchTasks()
-          toast.success('任务删除成功')
+          toast.success('Task deleted successfully')
         } catch (error) {
           console.error('Failed to delete task:', error)
-          toast.error('任务删除失败')
+          toast.error('Failed to delete task')
         }
       }
 
@@ -740,5 +740,24 @@
 
   .v-list-item {
     min-height: 40px;
+  }
+
+  .task-done {
+    background-color: #f5f5f5;
+    opacity: 0.8;
+    border: none;
+  }
+
+  .task-title-done {
+    color: #9e9e9e;
+    text-decoration: line-through;
+  }
+
+  .task-done:hover {
+    transform: none !important;
+  }
+
+  .task-done .task-meta .v-chip {
+    opacity: 0.7;
   }
   </style>

@@ -10,7 +10,7 @@
               <v-card class="stats-card">
                 <v-card-text class="text-center">
                   <div class="text-h4 mb-2">{{ members.length }}</div>
-                  <div class="text-subtitle-1">团队成员</div>
+                  <div class="text-subtitle-1">Team Members</div>
                 </v-card-text>
               </v-card>
             </v-col>
@@ -18,7 +18,7 @@
               <v-card class="stats-card">
                 <v-card-text class="text-center">
                   <div class="text-h4 mb-2">{{ selectedMembers.length }}</div>
-                  <div class="text-subtitle-1">已选成员</div>
+                  <div class="text-subtitle-1">Selected Members</div>
                 </v-card-text>
               </v-card>
             </v-col>
@@ -31,7 +31,7 @@
               <v-text-field
                 v-model="search"
                 prepend-inner-icon="mdi-magnify"
-                label="搜索成员"
+                label="Search Members"
                 single-line
                 hide-details
                 density="compact"

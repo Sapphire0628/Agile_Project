@@ -2,14 +2,14 @@
   <div class="login-container">
     <v-card class="corner" width="500px">
       <v-toolbar color="primary">
-        <v-toolbar-title>登录</v-toolbar-title>
+        <v-toolbar-title>Login</v-toolbar-title>
       </v-toolbar>
       <v-container fluid>
         <v-card-text>
           <v-form @keyup.enter.native="login" v-model="valid" ref="form" lazy-validation>
             <v-text-field
             v-model="username"
-            label="用户名"
+            label="Username"
             :rules="usernameRules"
             :counter="10"
             required
@@ -18,14 +18,14 @@
             <v-text-field
               v-model="password"
               :rules="passwordRules"
-              label="密码"
+              label="Password"
               required
               prepend-inner-icon="mdi mdi-lock"
             ></v-text-field>
           </v-form>
             <v-card-actions class="d-flex justify-center">
-              <v-btn variant="outlined" color="primary" :disabled="!valid" @click="login">登录</v-btn>
-              <v-btn variant="outlined" @click="goToRegister">没有账号？注册</v-btn>
+              <v-btn variant="outlined" color="primary" :disabled="!valid" @click="login">Login</v-btn>
+              <v-btn variant="outlined" @click="goToRegister">No account? Register</v-btn>
             </v-card-actions>
         </v-card-text>
       </v-container>
@@ -45,16 +45,16 @@ export default {
       valid: true,
       username: '',
       usernameRules: [
-      v => !!v || '用户名不能为空',
-      v => (v&&v.length <= 10) || '用户名不能超过10个字符'
+      v => !!v || 'Username cannot be empty',
+      v => (v&&v.length <= 10) || 'Username cannot exceed 10 characters'
       ],
       password: '',
       passwordRules: [
-      v => !!v || '密码是必填项',
-        v => v.length >= 6 || '密码必须至少6个字符',
-        v => /[A-Z]/.test(v) || '密码必须包含至少一个大写字母',
-        v => /[a-z]/.test(v) || '密码必须包含至少一个小写字母',
-        v => /[0-9]/.test(v) || '密码必须包含至少一个数字'
+      v => !!v || 'Password is required',
+        v => v.length >= 6 || 'Password must be at least 6 characters',
+        v => /[A-Z]/.test(v) || 'Password must contain at least one uppercase letter',
+        v => /[a-z]/.test(v) || 'Password must contain at least one lowercase letter',
+        v => /[0-9]/.test(v) || 'Password must contain at least one number'
       ]
   }),
 
@@ -69,13 +69,13 @@ export default {
             const token = response.data.token
             this.$store.dispatch('user/login', token)
             this.$store.dispatch('user/setUsername', this.username)
-            this.toast.success('登录成功')
+            this.toast.success('Login successful')
             this.$router.push('/home')
-            console.log('登录成功')
+            console.log('Login successful')
           })
           .catch(() => {
-            this.toast.error('登录失败')
-            console.log('登陆失败')
+            this.toast.error('Login failed')
+            console.log('Login failed')
           })
         }
     },

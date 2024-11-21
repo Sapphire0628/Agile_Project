@@ -2,7 +2,7 @@
   <v-dialog v-model="dialog" max-width="1000px" persistent>
     <v-card class="task-dialog">
       <v-card-title class="d-flex align-center pa-4">
-        <span class="text-h6">任务详情</span>
+        <span class="text-h6">Task Details</span>
         <v-spacer></v-spacer>
         <v-btn icon="mdi-close" variant="text" @click="dialog = false"></v-btn>
       </v-card-title>
@@ -16,37 +16,44 @@
               <v-skeleton-loader v-if="loading" type="article" />
               
               <template v-else>
-                <div class="d-flex align-center mb-6">
-                  <div class="text-h5 font-weight-medium">#{{ taskId }} {{ taskDetail.name }}</div>
+                <div class="d-flex align-center mb-6" :class="{ 'task-done': taskDetail.status === 'Done' }">
+                  <div class="text-h5 font-weight-medium" :class="{ 'task-title-done': taskDetail.status === 'Done' }">
+                    #{{ taskId }} {{ taskDetail.name }}
+                  </div>
                   <v-chip
                     :color="getStatusColor(taskDetail.status)"
                     class="ml-4"
                     variant="elevated"
+                    :class="{ 'chip-done': taskDetail.status === 'Done' }"
                   >
                     {{ taskDetail.status }}
                   </v-chip>
                 </div>
 
-                <div class="mb-6 task-description pa-4 rounded bg-grey-lighten-4">
-                  <div class="text-subtitle-2 font-weight-medium mb-2">任务描述</div>
-                  <div class="text-body-1">{{ taskDetail.description || '暂无描述' }}</div>
+                <div class="mb-6 task-description pa-4 rounded bg-grey-lighten-4" 
+                  :class="{ 'description-done': taskDetail.status === 'Done' }"
+                >
+                  <div class="text-subtitle-2 font-weight-medium mb-2">Task Description</div>
+                  <div class="text-body-1" :class="{ 'text-grey': taskDetail.status === 'Done' }">
+                    {{ taskDetail.description || 'No description' }}
+                  </div>
                 </div>
 
                 <div class="date-info mb-6 pa-4 rounded bg-grey-lighten-4">
                   <div class="d-flex flex-column">
                     <div class="d-flex align-center mb-3">
                       <v-icon icon="mdi-clock-outline" size="small" color="primary" class="mr-2"></v-icon>
-                      <div class="text-subtitle-2 font-weight-medium">时间安排</div>
+                      <div class="text-subtitle-2 font-weight-medium">Time Schedule</div>
                     </div>
                     <div class="time-info">
                       <div class="time-row mb-2">
-                        <span class="text-caption text-grey-darken-1 mr-4">开始时间：</span>
+                        <span class="text-caption text-grey-darken-1 mr-4">Start Time:</span>
                         <span class="text-body-2 font-weight-medium">
                           {{ formatDateDisplay(taskDetail.created_at) }}
                         </span>
                       </div>
                       <div class="time-row">
-                        <span class="text-caption text-grey-darken-1 mr-4">截止时间：</span>
+                        <span class="text-caption text-grey-darken-1 mr-4">Due Date:</span>
                         <span class="text-body-2 font-weight-medium" :class="getDueDateTextClass(taskDetail.due_date)">
                           {{ formatDateDisplay(taskDetail.due_date) }}
                         </span>
@@ -131,7 +138,7 @@
             <div class="pa-4">
               <v-textarea
                 v-model="newComment"
-                label="添加评论"
+                label="Add Comment"
                 rows="3"
                 variant="outlined"
                 hide-details
@@ -145,7 +152,7 @@
                   :disabled="!newComment.trim()"
                   @click="submitComment"
                 >
-                  提交评论
+                  Submit Comment
                 </v-btn>
               </div>
             </div>
@@ -153,7 +160,7 @@
 
           <v-col cols="6" class="comments-section">
             <div class="pa-4">
-              <div class="text-h6 mb-4">评论记录</div>
+              <div class="text-h6 mb-4">Comment History</div>
               <v-list v-if="comments.length">
                 <v-list-item
                   v-for="comment in comments"
@@ -187,7 +194,7 @@
                 </v-list-item>
               </v-list>
               <div v-else class="text-center text-grey-darken-1 mt-4">
-                暂无评论
+                No comments yet
               </div>
             </div>
           </v-col>
@@ -268,7 +275,7 @@ export default {
         taskDetail.value = response.data.task
         members.value = response.data.member || []
       } catch (error) {
-        toast.error('获取任务详情失败')
+        toast.error('Failed to get task details')
       } finally {
         loading.value = false
       }
@@ -283,7 +290,7 @@ export default {
         }))
         console.log(projectMembers.value)
       } catch (error) {
-        toast.error('获取项目成员失败')
+        toast.error('Failed to get project members')
       }
     }
 
@@ -297,7 +304,7 @@ export default {
           username: comment['username:']
         }))
       } catch (error) {
-        toast.error('获取评论失败')
+        toast.error('Failed to get comments')
       }
     }
 
@@ -313,9 +320,9 @@ export default {
         })
         newComment.value = ''
         await fetchComments()
-        toast.success('评论提交成功')
+        toast.success('Comment submitted successfully')
       } catch (error) {
-        toast.error('评论提交失败')
+        toast.error('Failed to submit comment')
       } finally {
         submittingComment.value = false
       }
@@ -360,10 +367,10 @@ export default {
           task_id: props.taskId,
           user: {users:[newAssigneeId], type: 'add'}
         })
-        toast.success('负责人更新成功')
+        toast.success('Assignee updated successfully')
         await fetchTaskDetail() 
       } catch (error) {
-        toast.error('负责人更新失败')
+        toast.error('Failed to update assignee')
         await fetchTaskDetail()
       } finally {
         updatingAssignee.value = false
@@ -377,18 +384,18 @@ export default {
           task_id: props.taskId,
           user: {users:[username], type: 'remove'}
         })
-        toast.success('负责人移除成功')
+        toast.success('Assignee removed successfully')
         await fetchTaskDetail()
       } catch (error) {
-        toast.error('负责人移除失败')
+        toast.error('Failed to remove assignee')
       } finally {
         removingUser.value = null
       }
     }
 
     const formatDateDisplay = (date) => {
-      if (!date) return '未设置'
-      return format(new Date(date), 'yyyy年MM月dd日')
+      if (!date) return 'Not set'
+      return format(new Date(date), 'yyyy-MM-dd')
     }
 
     const getDueDateColor = (dueDate) => {
@@ -425,9 +432,9 @@ export default {
       try {
         await deleteComment({comment_id: commentId} )
         await fetchComments()
-        toast.success('评论删除成功')
+        toast.success('Comment deleted successfully')
       } catch (error) {
-        toast.error('评论删除失败')
+        toast.error('Failed to delete comment')
       } finally {
         deletingCommentId.value = null
       }
@@ -543,5 +550,32 @@ export default {
 
 .comments-section .v-btn:hover {
   opacity: 1;
+}
+
+.task-done {
+  opacity: 0.8;
+}
+
+.task-title-done {
+  color: #9e9e9e;
+  text-decoration: line-through;
+}
+
+.description-done {
+  background-color: #fafafa !important;
+  border-color: rgba(0, 0, 0, 0.03) !important;
+}
+
+.chip-done {
+  opacity: 0.7;
+}
+
+.text-grey {
+  color: #9e9e9e !important;
+}
+
+.task-done .comments-section .v-list-item {
+  opacity: 0.8;
+  background: #fafafa;
 }
 </style>

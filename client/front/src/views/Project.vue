@@ -7,11 +7,19 @@
         <v-row>
 
           <v-col cols="12" md="8">
-            <Backlog 
-            ref="backlog"
-            :project-id="projectId" 
-            @sprint-updated="SprintUpdated"
-            />
+            <v-row style="height: 80vh;">
+              <v-col cols="12" style="height: 60%;">
+                <Burndown :project-id="projectId" class="h-100" />
+              </v-col>
+              <v-col cols="12" style="height: 40%;">
+                <Backlog 
+                  ref="backlog"
+                  :project-id="projectId" 
+                  @sprint-updated="SprintUpdated"
+                  class="h-100"
+                />
+              </v-col>
+            </v-row>
           </v-col>
 
           <v-col cols="12" md="4">
@@ -33,6 +41,7 @@ import Header from '@/components/Header.vue'
 import SideBar from '@/components/SideBar.vue'
 import Backlog from '@/components/Backlog.vue'
 import SprintManagement from '@/components/SprintManagement.vue'
+import Burndown from '@/components/Burndown.vue'
 
 export default defineComponent({
   name: 'ProjectView',
@@ -40,7 +49,8 @@ export default defineComponent({
     Header,
     SideBar,
     Backlog,
-    SprintManagement
+    SprintManagement,
+    Burndown
   },
   setup(){
     const route = useRoute()

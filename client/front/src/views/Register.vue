@@ -9,7 +9,7 @@
             <v-form @keyup.enter.native="register" v-model="valid" ref="form" lazy-validation>
               <v-text-field
                 v-model="username"
-                label="用户名"
+                label="Username"
                 :rules="usernameRules"
                 :counter="10"
                 required
@@ -18,21 +18,21 @@
               <v-text-field
                 v-model="email"
                 :rules="emailRules"
-                label="电子邮件"
+                label="Email"
                 required
                 prepend-inner-icon="mdi-email"
               ></v-text-field>
               <v-text-field
                 v-model="password"
                 :rules="passwordRules"
-                label="密码"
+                label="Password"
                 required
                 prepend-inner-icon="mdi-lock"
               ></v-text-field>
             </v-form>
               <v-card-actions class="d-flex justify-center">
-                <v-btn variant="outlined" color="primary" :disabled="!valid" @click="register">注册</v-btn>
-                <v-btn variant="outlined" @click="getback">返回</v-btn>
+                <v-btn variant="outlined" color="primary" :disabled="!valid" @click="register">Register</v-btn>
+                <v-btn variant="outlined" @click="getback">Back</v-btn>
               </v-card-actions>
           </v-card-text>
         </v-container>
@@ -51,21 +51,21 @@ export default {
     valid: true,
     username: '',
     usernameRules: [
-      v => !!v || '用户名不能为空',
-      v => (v&&v.length <= 10) || '用户名不能超过10个字符'
+      v => !!v || 'Username cannot be empty',
+      v => (v&&v.length <= 10) || 'Username cannot exceed 10 characters'
     ],
     email: '',
     emailRules: [
-      v => !!v || '电子邮件不能为空',
-      v => /.+@.+\..+/.test(v) || '电子邮件格式不正确'
+      v => !!v || 'Email cannot be empty',
+      v => /.+@.+\..+/.test(v) || 'Invalid email format'
     ],
     password: '',
     passwordRules: [
-    v => !!v || '密码是必填项',
-      v => v.length >= 6 || '密码必须至少6个字符',
-      v => /[A-Z]/.test(v) || '密码必须包含至少一个大写字母',
-      v => /[a-z]/.test(v) || '密码必须包含至少一个小写字母',
-      v => /[0-9]/.test(v) || '密码必须包含至少一个数字'
+    v => !!v || 'Password is required',
+      v => v.length >= 6 || 'Password must be at least 6 characters',
+      v => /[A-Z]/.test(v) || 'Password must contain at least one uppercase letter',
+      v => /[a-z]/.test(v) || 'Password must contain at least one lowercase letter',
+      v => /[0-9]/.test(v) || 'Password must contain at least one number'
     ]
 }),
 
@@ -78,13 +78,13 @@ methods: {
           password: this.password,
         })
         .then(() => {
-          console.log('注册成功')
-          this.toast.success('注册成功')
+          console.log('Registration successful')
+          this.toast.success('Registration successful')
           this.$router.push('/login')
         })
         .catch(() =>{
-          this.toast.error('注册失败')
-          console.log('注册失败')
+          this.toast.error('Registration failed')
+          console.log('Registration failed')
         })
       }
   },
