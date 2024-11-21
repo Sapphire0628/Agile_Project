@@ -3,6 +3,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 import jwt
 import os
 import sqlite3
+import datetime
 
 pro_bp = Blueprint('pro', __name__)
 
@@ -834,6 +835,14 @@ def update_task(data):
                                    SET status = ?
                                    WHERE Tasks.task_id = ?''',
                          (data['status'], task_id,))
+            event_date = None
+            conn.execute('''UPDATE Tasks SET done_date = ? WHERE Tasks.task_id = ?''',
+                         (event_date, task_id,))
+            if data['status'] == 'Done':
+                event_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                conn.execute('''UPDATE Tasks SET done_date = ? WHERE Tasks.task_id = ?''',
+                             (event_date, task_id,))
+
         if 'priority' in data.keys():
             conn.execute('''UPDATE Tasks
                                    SET priority = ?
@@ -845,6 +854,11 @@ def update_task(data):
                                    WHERE Tasks.task_id = ?''',
                          (data['due_date'], task_id,))
 
+        if 'done_date' in data.keys():
+            conn.execute('''UPDATE Tasks
+                                   SET done_date = ?
+                                   WHERE Tasks.task_id = ?''',
+                         (data['done_date'], task_id,))
         conn.commit()
         return jsonify({'message': 'Task updated successfully'}), 201
     except Exception as e:
@@ -984,6 +998,44 @@ def update_comment(data):
         return jsonify({'error': str(e)}), 500
     finally:
         conn.close()
+
+@pro_bp.route('/chart', methods=['GET'])
+@jwt_required()
+def chart():
+    # 用户注册、更新任务
+    current_user = get_jwt_identity()
+    if request.method == "GET":
+        args = request.args
+        required_fields = ['project_id']
+        if not all(field in args for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        project_id = args['project_id']
+        conn = get_db_connection()
+        try:
+            cursor = conn.execute('SELECT * FROM Projects WHERE project_id = ?', (project_id,))
+            pro = cursor.fetchone()
+            # check project
+            if pro:
+                cursor = conn.cursor()
+                # get all task in this project
+                cursor = conn.execute(
+                    '''SELECT t.task_id, t.task_name, t.due_date, t.done_date, t.created_at
+                       FROM Tasks t, ProjectTask pt
+                       WHERE t.task_id = pt.task_id and pt.project_id = ?''',
+                    (project_id,))
+                tasks = cursor.fetchall()
+                # turn list information into dictionary
+                tasks = [{'task_id': t[0], 'task_name': t[1], 'due_date': t[2], 'done_date': t[3], 'created_at': t[4] } for t in tasks]
+
+                return jsonify(tasks), 200
+            else:
+                return jsonify({'error': 'Invalid Project id'}), 401
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+        finally:
+            conn.close()
+
 
 @pro_bp.route('/comment', methods=['POST', 'GET', 'DELETE', 'PUT'])
 @jwt_required()

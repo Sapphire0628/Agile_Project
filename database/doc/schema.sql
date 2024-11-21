@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS Tasks (
     status TEXT CHECK(status IN ('Not start', 'Started', 'Testing', 'Review', 'Done')) DEFAULT 'Not start',
     priority INTEGER,
     due_date DATETIME,
+    done_date DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -36,7 +37,9 @@ CREATE TABLE IF NOT EXISTS Sprint (
     project_id INTEGER  NOT NULL ,
     start_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     due_date DATETIME,
-    PRIMARY KEY (round, project_id,task_id)
+    PRIMARY KEY (round, project_id,task_id),
+    FOREIGN KEY (project_id) REFERENCES Projects(project_id) ON DELETE CASCADE,
+    FOREIGN KEY (task_id) REFERENCES Tasks(task_id) ON DELETE CASCADE
 );
 
 -- UserProject junction table
