@@ -165,7 +165,7 @@
                 <v-list-item
                   v-for="comment in comments"
                   :key="comment.comment_id"
-                  class="mb-4"
+                  class="mb-4 comment-item"
                 >
                   <template v-slot:prepend>
                     <v-avatar size="36" class="mr-3" :color="getAvatarColor(comment.username)">
@@ -188,8 +188,10 @@
                       </div>
                     </div>
                   </v-list-item-title>
-                  <v-list-item-subtitle class="mt-2 text-wrap">
-                    {{ comment.comment }}
+                  <v-list-item-subtitle class="mt-2">
+                    <div class="comment-content">
+                      {{ comment.comment }}
+                    </div>
                   </v-list-item-subtitle>
                 </v-list-item>
               </v-list>
@@ -533,23 +535,32 @@ export default {
 
 .comments-section .v-list-item {
   width: 100%;
-  padding: 8px;
-  background: #f5f5f5;
-  border-radius: 8px;
-  margin-bottom: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  transition: all 0.2s ease;
 }
 
-.comments-section .v-list {
-  width: 100%;
+.comments-section .v-list-item:hover {
+  background: #f3f4f6;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.comments-section .v-btn {
-  opacity: 0.7;
-  transition: opacity 0.2s;
+.v-list-item {
+  animation: fadeIn 0.3s ease-in-out;
 }
 
-.comments-section .v-btn:hover {
-  opacity: 1;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .task-done {
@@ -577,5 +588,88 @@ export default {
 .task-done .comments-section .v-list-item {
   opacity: 0.8;
   background: #fafafa;
+}
+
+.comment-content {
+  white-space: pre-wrap;
+  line-height: 1.5;
+  padding: 8px 12px;
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-size: 0.95rem;
+}
+
+.comments-section {
+  background-color: #ffffff;
+}
+
+.comment-item {
+  position: relative;
+  border: none !important;
+  background: transparent !important;
+  margin-bottom: 24px !important;
+}
+
+.comment-content {
+  position: relative;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  padding: 12px 16px;
+  background-color: #E3F2FD;
+  border-radius: 0 12px 12px 12px;
+  margin-top: 8px;
+  margin-left: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-size: 0.95rem;
+  color: #080a0c;
+  font-weight: 400;
+}
+
+.comment-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -8px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 8px 8px 0;
+  border-color: transparent #E3F2FD transparent transparent;
+}
+
+/* 评论卡片的hover效果 */
+.comment-item:hover .comment-content {
+  background-color: #BBDEFB;
+  transform: translateX(4px);
+  transition: all 0.3s ease;
+}
+
+/* 评论出现动画 */
+.comment-item {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 时间戳样式 */
+.text-caption {
+  font-size: 0.75rem;
+  color: #78909C !important;
+}
+
+/* 用户名样式 */
+.font-weight-medium {
+  color: #1976D2;
+  font-weight: 500;
 }
 </style>

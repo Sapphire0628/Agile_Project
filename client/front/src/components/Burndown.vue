@@ -20,7 +20,7 @@
 
 <script>
 import * as echarts from 'echarts'
-import { onMounted, onUnmounted, ref, nextTick } from 'vue'
+import { onMounted, onUnmounted, ref, nextTick, watch } from 'vue'
 import {getSprints} from '@/api/sprint'
 
 export default {
@@ -53,6 +53,12 @@ export default {
 
     const fetchCurrentSprint = async () => {
       try {
+        if (!props.projectId) {
+          console.warn('No project ID provided')
+          return
+        }
+        
+        console.log('Fetching sprint data for project:', props.projectId)
         const sprintsResponse = await getSprints({project_id: props.projectId})
         const sprints = Object.values(sprintsResponse.data).map(sprint => ({
           due_date: sprint.due_date,
@@ -277,6 +283,21 @@ export default {
         console.error('Chart rendering failed:', error)
       }
     }
+
+    const fetchBurndownData = async () => {
+      await fetchCurrentSprint()
+    }
+
+    watch(
+      () => props.projectId,
+      async (newId, oldId) => {
+        if (newId !== oldId) {
+          console.log('Burndown: projectId changed to', newId)
+          await fetchCurrentSprint()
+        }
+      }
+    )
+
     onMounted(async () => {
       await fetchCurrentSprint()
       
@@ -295,7 +316,8 @@ export default {
     return {
       burndownChart,
       sprintData,
-      formatDateStr
+      formatDateStr,
+      fetchBurndownData
     }
   }
 }

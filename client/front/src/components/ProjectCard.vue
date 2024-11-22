@@ -1,7 +1,7 @@
 <template>
   <v-card variant="outlined" class="project-card mb-3 rounded-lg" elevation="0" hover>
     <div class="d-flex pa-4 clickable" @click="handleCardClick">
-      <!-- 左侧头像部分 -->
+
       <v-avatar
         size="50"
         class="mr-4 project-avatar flex-shrink-0"
@@ -12,7 +12,6 @@
         </span>
       </v-avatar>
       
-      <!-- 右侧内容部分 -->
       <div class="flex-grow-1 min-width-0">
         <div class="d-flex justify-space-between align-center mb-3">
           <div class="d-flex flex-column flex-grow-1 min-width-0 mr-4">
@@ -22,7 +21,6 @@
               {{ formatDate(project.created_at) }}
             </div>
           </div>
-          <!-- 删除按钮 -->
           <v-btn
           icon="mdi-delete"
           variant="tonal"   
@@ -35,7 +33,6 @@
           </v-btn>
         </div>
         
-        <!-- 项目描述 -->
         <p class="text-body-2 text-grey description-text" v-if="project.description">
           {{ project.description }}
         </p>
@@ -43,7 +40,6 @@
     </div>
     
 
-    <!-- 确认删除对话框 -->
     <v-dialog v-model="showDeleteDialog" max-width="400">
       <v-card>
         <v-card-title class="text-h6">
@@ -116,7 +112,8 @@ export default {
         '245, 124, 0',
         '0, 151, 167'
       ];
-      return colors[Math.floor(Math.random() * colors.length)];
+      const colorIndex = this.project.project_id % colors.length;
+      return colors[colorIndex];
     },
     async deleteProject() {
       try {

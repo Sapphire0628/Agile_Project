@@ -137,17 +137,6 @@
     return [...ownedProjects, ...workingProjects]
   })
 
-
-  const currentProject = computed(() => {
-    const currentPath = router.currentRoute.value.path
-    const projectIdMatch = currentPath.match(/\/project\/(\d+)/)
-    if (projectIdMatch) {
-      const projectId = projectIdMatch[1]
-      return allProjects.value.find(p => p.project_id === projectId) || {}
-    }
-    return {}
-  })
-
   const userInitials = computed(() => {
     return username.value
       .split(' ')
@@ -202,20 +191,17 @@
   const getProjectColor = (projectName) => {
     const colors = [
       'rgb(25, 118, 210)',   
-      'rgb(56, 142, 60)',   
+      'rgb(56, 142, 60)',    
       'rgb(211, 47, 47)',    
       'rgb(123, 31, 162)',   
       'rgb(245, 124, 0)',    
       'rgb(0, 151, 167)'     
     ]
+  
+    const project = allProjects.value.find(p => p.project_name === projectName)
+    if (!project) return colors[0]
     
-    if (!projectName) return colors[0]
-    
-    const hash = projectName.split('').reduce((acc, char) => {
-      return char.charCodeAt(0) + ((acc << 5) - acc)
-    }, 0)
-    
-    return colors[Math.abs(hash) % colors.length]
+    return colors[project.project_id % colors.length]
   }
   </script>
   

@@ -342,7 +342,13 @@
           toast.success('Task moved back to backlog')
         } catch (error) {
           console.error('Failed to remove task from sprint:', error)
-          toast.error('Failed to move task back to backlog')
+          if (error.response && error.response.status === 400) 
+          {
+            toast.error('You are not the owner of this project')
+          }
+          else {
+            toast.error('Failed to move task back to backlog')
+          }
           await fetchSprints()
         }
       }

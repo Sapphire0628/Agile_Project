@@ -47,6 +47,7 @@
 <script>
 import { addProject } from '@/api/project'
 
+
 export default {
   name: 'NewProject',
   data() {

@@ -9,7 +9,11 @@
           <v-col cols="12" md="8">
             <v-row style="height: 80vh;">
               <v-col cols="12" style="height: 60%;">
-                <Burndown :project-id="projectId" class="h-100" />
+                <Burndown 
+                  ref="burndownRef"
+                  :project-id="projectId" 
+                  class="h-100"
+                />
               </v-col>
               <v-col cols="12" style="height: 40%;">
                 <Backlog 
@@ -35,7 +39,7 @@
 </template>
 
 <script>
-import { defineComponent, ref } from 'vue'
+import { defineComponent, ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Header from '@/components/Header.vue'
 import SideBar from '@/components/SideBar.vue'
@@ -57,6 +61,7 @@ export default defineComponent({
     const backlog = ref(null)
     const sideBar = ref(null)
     const sprintManagementRef = ref(null)
+    const burndownRef = ref(null)
     const RemoveFromSprint = async () => {
       if (backlog.value && typeof backlog.value.fetchTasks === 'function') {
         await backlog.value.fetchTasks()
@@ -65,22 +70,45 @@ export default defineComponent({
       }
     }
     const SprintCreated = async () => {
-      if (sideBar.value && typeof sideBar.value.fetchSprints === 'function') {
+      if (sideBar.value?.fetchSprints) {
         await sideBar.value.fetchSprints()
+      }
+      if (burndownRef.value?.fetchBurndownData) {
+        await burndownRef.value.fetchBurndownData()
       }
       else {
         console.error('SideBar reference or fetchSprints method not available')
       }
     }
     const SprintUpdated = async () => {
-      if (sprintManagementRef.value && typeof sprintManagementRef.value.fetchSprints === 'function') {
+      if (sprintManagementRef.value?.fetchSprints) {
         await sprintManagementRef.value.fetchSprints()
-      } else {
+      }
+      if (burndownRef.value?.fetchBurndownData) {
+        await burndownRef.value.fetchBurndownData()
+      }
+      else {
         console.error('SprintManagement reference or fetchSprints method not available')
       }
     }
 
-    const projectId = ref(parseInt(route.params.id))
+    const projectId = computed(() => parseInt(route.params.id))
+
+    watch(() => route.params.id, async (newId) => {
+      if (burndownRef.value?.fetchBurndownData) {
+        await burndownRef.value.fetchBurndownData()
+      }
+      if (backlog.value?.fetchTasks) {
+        await backlog.value.fetchTasks()
+      }
+      if (sideBar.value?.fetchSprints) {
+        await sideBar.value.fetchSprints()
+      }
+      if (sprintManagementRef.value?.fetchSprints) {
+        await sprintManagementRef.value.fetchSprints()
+      }
+    })
+
     return {
       projectId,
       RemoveFromSprint,
@@ -88,7 +116,8 @@ export default defineComponent({
       SprintUpdated,
       backlog,
       sideBar,
-      sprintManagementRef
+      sprintManagementRef,
+      burndownRef
     }
   }
 })
