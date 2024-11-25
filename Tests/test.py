@@ -3,7 +3,6 @@ import json
 import requests
 
 
-
 class TestUser(unittest.TestCase):
     def setUp(self):
         self.auth = 'http://localhost:8000//auth/'
