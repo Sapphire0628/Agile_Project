@@ -177,9 +177,12 @@
   }
   
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('username')
-    router.push('/login')
+    try {
+      store.dispatch('user/logout')
+      router.push('/login')
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
   }
 
 

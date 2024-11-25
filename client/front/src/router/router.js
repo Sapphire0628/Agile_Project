@@ -7,11 +7,12 @@ import Project from '../views/Project.vue'
 import Team from '../views/Team.vue'
 import TaskDetail from '../views/TaskDetail.vue'
 import SprintDashboard from '../views/SprintDashboard.vue'
+import store from '../store'
 
 const routes = [
   {
     path: '/',
-    redirect: '/login'  
+    redirect: '/home'  
   },
   {
     path: '/login',
@@ -83,15 +84,21 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫
-// router.beforeEach((to, from, next) => {
-//   const isAuthenticated = localStorage.getItem('token') // 假设使用token存储登录状态
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = store.getters['user/isAuthenticated']
   
-//   if (to.meta.requiresAuth && !isAuthenticated) {
-//     next('/login')
-//   } else {
-//     next()
-//   }
-// })
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next({
+      path: '/login',
+      query: { redirect: to.fullPath }
+    })
+  } else if ((to.path === '/login' || to.path === '/register') && isAuthenticated) {
+    next('/home')
+  } else if (to.query.redirect && isAuthenticated) {
+    next(to.query.redirect)
+  } else {
+    next()
+  }
+})
 
 export default router 

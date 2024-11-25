@@ -70,7 +70,8 @@ export default {
             this.$store.dispatch('user/login', token)
             this.$store.dispatch('user/setUsername', this.username)
             this.toast.success('Login successful')
-            this.$router.push('/home')
+            const redirectPath = this.$route.query.redirect || '/home'
+            this.$router.push(redirectPath)
             console.log('Login successful')
           })
           .catch(() => {

@@ -1,6 +1,6 @@
 const state = {
     token: localStorage.getItem('token') || '',
-    username: localStorage.getItem('username') || ''
+    username: localStorage.getItem('username') || '',
   }
   
   const mutations = {
@@ -8,13 +8,16 @@ const state = {
       state.token = token
       localStorage.setItem('token', token)
     },
-    REMOVE_TOKEN(state) {
-      state.token = ''
-      localStorage.removeItem('token')
-    },
+
     SET_USERNAME(state, username) {
       state.username = username
       localStorage.setItem('username', username)
+    },
+    CLEAR_USER_STATE(state) {
+      state.token = null
+      state.username = null
+      localStorage.removeItem('token')
+      localStorage.removeItem('username')
     }
   }
   
@@ -23,7 +26,7 @@ const state = {
       commit('SET_TOKEN', token)
     },
     logout({ commit }) {
-      commit('REMOVE_TOKEN')
+      commit('CLEAR_USER_STATE')
     },
     setUsername({ commit }, username) {
       commit('SET_USERNAME', username)
@@ -32,7 +35,8 @@ const state = {
 
   const getters = {
     token: state => state.token,
-    username: state => state.username
+    username: state => state.username,
+    isAuthenticated: state => !!state.token
   }
   
   export default {

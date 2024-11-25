@@ -1,9 +1,12 @@
 import { createStore } from 'vuex'
 import user from './modules/user'
 import project from './modules/project'
-export default createStore({
+
+const store = createStore({
   modules: {
     user,
     project
   }
 })
+
+export default store
