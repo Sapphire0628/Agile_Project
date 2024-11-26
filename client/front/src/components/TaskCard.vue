@@ -214,6 +214,7 @@ import { getTaskComments, addComment, deleteComment } from '@/api/comment'
 import { format } from 'date-fns'
 import { getProjectMembers } from '@/api/project'
 
+// Task 数据结构
 export default {
   name: 'TaskCard',
   props: {
@@ -267,6 +268,7 @@ export default {
       return taskDetail.value.members?.some(member => member.username === username)
     }
 
+    // 获取task详细信息
     const fetchTaskDetail = async () => {
       loading.value = true
       try {
@@ -283,6 +285,7 @@ export default {
       }
     }
 
+    // 获取项目人员
     const fetchMembers = async () => {
       try {
         const response = await getProjectMembers({'project_id':props.projectId})
@@ -295,7 +298,8 @@ export default {
         toast.error('Failed to get project members')
       }
     }
-
+    
+    // 获取注释
     const fetchComments = async () => {
       try {
         const response = await getTaskComments(props.taskId)
