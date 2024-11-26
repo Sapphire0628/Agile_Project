@@ -1,23 +1,23 @@
 const state = {
-    token: localStorage.getItem('token') || '',
-    username: localStorage.getItem('username') || '',
+    token: sessionStorage.getItem('token') || '',
+    username: sessionStorage.getItem('username') || '',
   }
   
   const mutations = {
     SET_TOKEN(state, token) {
       state.token = token
-      localStorage.setItem('token', token)
+      sessionStorage.setItem('token', token)
     },
 
     SET_USERNAME(state, username) {
       state.username = username
-      localStorage.setItem('username', username)
+      sessionStorage.setItem('username', username)
     },
     CLEAR_USER_STATE(state) {
       state.token = null
       state.username = null
-      localStorage.removeItem('token')
-      localStorage.removeItem('username')
+      sessionStorage.removeItem('token')
+      sessionStorage.removeItem('username')
     }
   }
   
