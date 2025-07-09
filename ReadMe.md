@@ -31,7 +31,8 @@ Follow these steps to get your development environment set up:
     bash setup_script.sh
     
 
-
+## Documentation
+- [Project Presentation (PPT)](PPT.pptx) - View our project presentation slides
 
 
 ## Contributors
